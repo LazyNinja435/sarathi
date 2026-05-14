@@ -1,0 +1,11 @@
+{
+  "verse_count": 700,
+  "expected_verse_count": 700,
+  "complete": true,
+  "chapters_with_zero_verses": [],
+  "warnings": [
+    "Duplicate verse dropped: (1, 21)",
+    "Duplicate verse dropped: (1, 27)",
+    "Omitted Besant Bhagavad Gita 13.35 from export: the 700-shloka canon counts 34 verses in chapter 13; Besant Wikisource labels a 35th stanza."
+  ]
+}

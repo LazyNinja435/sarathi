@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "updated": "2026-05-14",
+  "sources": [
+    {
+      "id": "besant_wikisource_1922",
+      "collection": "gita",
+      "title": "Bhagavad-Gita (Besant 4th edition, 1922)",
+      "author_or_translator": "Annie Besant (translator)",
+      "year": "1922",
+      "source_url": "https://en.wikisource.org/wiki/Bhagavad-Gita_(Besant_4th)",
+      "license": "Public domain in the United States; verify jurisdiction before commercial distribution",
+      "notes": "Structured English (+ Devanagari blocks when present) via Wikisource parse API.",
+      "verified": 0
+    },
+    {
+      "id": "swarupananda_sacred_texts_1909",
+      "collection": "gita",
+      "title": "Bhagavad Gita (Swami Swarupananda, 1909)",
+      "author_or_translator": "Swami Swarupananda",
+      "year": "1909",
+      "source_url": "https://sacred-texts.com/hin/sbg/index.htm",
+      "license": "Public domain in the United States; verify jurisdiction before commercial distribution",
+      "notes": "Secondary English source; automated download may fail (Cloudflare). Place HTML under raw/ manually if needed.",
+      "verified": 0
+    },
+    {
+      "id": "arnold_gutenberg_1885",
+      "collection": "gita",
+      "title": "The Song Celestial (Edwin Arnold)",
+      "author_or_translator": "Sir Edwin Arnold",
+      "year": "1885",
+      "source_url": "https://www.gutenberg.org/ebooks/2388",
+      "license": "Project Gutenberg license; public domain in the US",
+      "notes": "Optional poetic rendering; not verse-aligned with canonical numbering.",
+      "verified": 0
+    },
+    {
+      "id": "ganguli_sacred_texts",
+      "collection": "mahabharata",
+      "title": "The Mahabharata of Krishna-Dwaipayana Vyasa (Kisari Mohan Ganguli)",
+      "author_or_translator": "Kisari Mohan Ganguli",
+      "year": "1883-1896",
+      "source_url": "https://sacred-texts.com/hin/maha/index.htm",
+      "license": "Public domain in the United States; verify jurisdiction before commercial distribution",
+      "notes": "Canonical reference; sacred-texts mirror may be blocked for bots—prefer AASI GitHub txt mirror for ingestion.",
+      "verified": 0
+    },
+    {
+      "id": "ganguli_aasi_github",
+      "collection": "mahabharata",
+      "title": "AASI archive Ganguli English Mahabharata (txt mirror)",
+      "author_or_translator": "Kisari Mohan Ganguli (AASI digitization)",
+      "year": "1883-1896",
+      "source_url": "https://github.com/aasi-archive/mbh",
+      "license": "See repository LICENSE; Ganguli text public domain in US",
+      "notes": "Practical ingestion source (maha01.txt–maha18.txt). Repository documents possible gaps—see build_report.json.",
+      "verified": 0
+    },
+    {
+      "id": "jdsmith_sanskrit_mahabharata_future",
+      "collection": "mahabharata",
+      "title": "Mahabharata textual corpus (John D. Smith / Indology) — future",
+      "author_or_translator": "Various (Sanskrit critical tradition)",
+      "year": "—",
+      "source_url": "https://bombay.indology.info/mahabharata/welcome.html",
+      "license": "TBD — verify before any ingestion; not used in v1",
+      "notes": "Placeholder for optional Sanskrit alignment; v1 English RAG does not depend on this.",
+      "verified": 0
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "database": "sarathi_rag.sqlite",
+  "generated_at_utc": "2026-05-14T18:29:53.698347+00:00",
+  "gita_documents": 700,
+  "mahabharata_documents": 3929,
+  "concepts": 15,
+  "notes": "FTS5 keyword index; embeddings table reserved for future use."
+}

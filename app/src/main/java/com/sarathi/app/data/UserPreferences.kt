@@ -1,0 +1,13 @@
+package com.sarathi.app.data
+
+import com.sarathi.app.model.GuidanceTone
+
+data class UserPreferences(
+    val userName: String = "",
+    val selectedTone: GuidanceTone = GuidanceTone.Gentle,
+    val onboardingComplete: Boolean = false,
+    val customModelPath: String = "",
+    val useMockMode: Boolean = false,
+    val lastFeeling: String = "",
+    val dharmaNote: String = "",
+)

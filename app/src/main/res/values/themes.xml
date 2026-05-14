@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="midnight_indigo">#071327</color>
+    <style name="Theme.Sarathi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/midnight_indigo</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

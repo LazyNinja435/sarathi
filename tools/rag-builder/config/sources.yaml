@@ -1,0 +1,19 @@
+wikisource:
+  besant_base_title: "Bhagavad-Gita (Besant 4th)"
+  discourse_pages: "Discourse {n}"  # n = 1..18, URL-encoded space in builder
+  parse_api: "https://en.wikisource.org/w/api.php"
+
+aasi_mahabharata:
+  base_url: "https://raw.githubusercontent.com/aasi-archive/mbh/main/txt/"
+  filenames_template: "maha{parva:02d}.txt"
+  parva_min: 1
+  parva_max: 18
+
+gutenberg:
+  arnold:
+    mirror_txt: "https://www.gutenberg.org/cache/epub/2388/pg2388.txt"
+
+sacred_texts:
+  swarupananda_index: "https://sacred-texts.com/hin/sbg/index.htm"
+  ganguli_maha_index: "https://sacred-texts.com/hin/maha/index.htm"
+  user_agent: "SarathiRagBuilder/1.0 (educational offline corpus; contact: local)"

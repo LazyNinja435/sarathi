@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "source_id": "besant_wikisource_1922",
+      "summary": "1922 printing; author Annie Besant died 1933. Wikisource marks public domain in US (pre-1931 publication) and life+92 in many jurisdictions.",
+      "jurisdiction_note": "Always verify for your distribution countries; this project does not offer legal advice."
+    },
+    {
+      "source_id": "swarupananda_sacred_texts_1909",
+      "summary": "1909 edition commonly treated as public domain in the US due to age of publication.",
+      "jurisdiction_note": "Verify for commercial use outside the US."
+    },
+    {
+      "source_id": "arnold_gutenberg_1885",
+      "summary": "Project Gutenberg ebook 2388; follow Gutenberg terms for redistribution of headers and license notices if required.",
+      "jurisdiction_note": "Gutenberg blocks some countries; verify eligibility."
+    },
+    {
+      "source_id": "ganguli_sacred_texts",
+      "summary": "Ganguli translation (late 19th century) widely cited as US public domain.",
+      "jurisdiction_note": "Verify jurisdiction; do not mix in modern copyrighted footnotes or introductions from third parties."
+    },
+    {
+      "source_id": "ganguli_aasi_github",
+      "summary": "Digitization of Ganguli English prose; treat as derivative of public-domain translation; follow upstream LICENSE.",
+      "jurisdiction_note": "Check AASI repository LICENSE file when shipping commercially."
+    },
+    {
+      "source_id": "jdsmith_sanskrit_mahabharata_future",
+      "summary": "Not ingested in v1. Any future use requires explicit permission and citation rules from the rights holder / host.",
+      "jurisdiction_note": "Do not ingest until license is verified in writing for bundled app data."
+    }
+  ]
+}

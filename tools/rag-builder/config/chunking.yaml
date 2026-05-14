@@ -1,0 +1,9 @@
+mahabharata:
+  min_chars: 400
+  max_chars: 3500
+  paragraph_merge_single_newlines: true
+  # Set to an integer (e.g. 2) to only ingest maha01..mahaNN for dev; null = all parvas
+  max_parva_number: null
+
+gita:
+  # Besant HTML is primary; no chunking beyond verse grain

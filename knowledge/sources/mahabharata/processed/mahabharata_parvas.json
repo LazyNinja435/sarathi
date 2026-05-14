@@ -1,0 +1,146 @@
+[
+  {
+    "parva_number": 1,
+    "parva_name": "Adi Parva",
+    "section_count": 235,
+    "chunk_count": 513,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 2,
+    "parva_name": "Sabha Parva",
+    "section_count": 80,
+    "chunk_count": 159,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 3,
+    "parva_name": "Vana Parva",
+    "section_count": 313,
+    "chunk_count": 593,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 4,
+    "parva_name": "Virata Parva",
+    "section_count": 72,
+    "chunk_count": 122,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 5,
+    "parva_name": "Udyoga Parva",
+    "section_count": 199,
+    "chunk_count": 335,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 6,
+    "parva_name": "Bhishma Parva",
+    "section_count": 124,
+    "chunk_count": 250,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 7,
+    "parva_name": "Drona Parva",
+    "section_count": 199,
+    "chunk_count": 381,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 8,
+    "parva_name": "Parva 8",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 9,
+    "parva_name": "Parva 9",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 10,
+    "parva_name": "Parva 10",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 11,
+    "parva_name": "Parva 11",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 12,
+    "parva_name": "Santi Parva",
+    "section_count": 359,
+    "chunk_count": 892,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 13,
+    "parva_name": "Anusasana Parva",
+    "section_count": 165,
+    "chunk_count": 459,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 14,
+    "parva_name": "Aswamedha Parva",
+    "section_count": 92,
+    "chunk_count": 157,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 15,
+    "parva_name": "Asramavasika Parva",
+    "section_count": 39,
+    "chunk_count": 68,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 16,
+    "parva_name": "Parva 16",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 17,
+    "parva_name": "Parva 17",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  },
+  {
+    "parva_number": 18,
+    "parva_name": "Parva 18",
+    "section_count": 0,
+    "chunk_count": 0,
+    "source_coverage_status": "present_in_aasi_txt",
+    "summary": ""
+  }
+]

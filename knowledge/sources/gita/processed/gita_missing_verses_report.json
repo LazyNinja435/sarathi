@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-05-14",
+  "edition": "besant_wikisource_1922",
+  "expected_total": 700,
+  "actual_total_after_fix": 700,
+  "missing_verses": [],
+  "extra_verses_handling": [
+    {
+      "chapter": 13,
+      "verse": 35,
+      "action": "omitted_from_export",
+      "reason": "Standard 700-shloka canon counts 34 verses in chapter 13; Besant Wikisource numbers a 35th stanza."
+    }
+  ],
+  "duplicates_normalized": [
+    {
+      "chapter": 1,
+      "verse": 21,
+      "note": "Two English paragraphs in raw HTML carried the same float marker; first kept."
+    },
+    {
+      "chapter": 1,
+      "verse": 27,
+      "note": "Duplicate float markers in raw HTML; first kept."
+    }
+  ],
+  "parser_fixes_applied": [
+    "Float-right verse text: optional closing paren, trailing 'n)' OCR, tooltip title [sic] '(n)' when visible number absent",
+    "Fallback to Devanagari ॥ markers only when float parse fails (single verse in preceding Sanskrit block)",
+    "Surgical correction when Sanskrit is one behind English float for known Besant slips: chapter 17 verse 19, chapter 18 verse 14"
+  ],
+  "recommended_future_work": "If Wikisource corrects duplicate markers in discourse_01.html, re-run normalize to pick up the dropped alternate paragraph text without manual merge."
+}

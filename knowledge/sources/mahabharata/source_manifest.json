@@ -1,0 +1,25 @@
+{
+  "work": "Mahabharata",
+  "collection": "mahabharata",
+  "expected_parva_files": 18,
+  "file_pattern": "maha{parva:02d}.txt",
+  "primary_source_id": "ganguli_aasi_github",
+  "sources": [
+    {
+      "id": "ganguli_aasi_github",
+      "raw_subdir": "ganguli_aasi",
+      "role": "primary_ingestion"
+    },
+    {
+      "id": "ganguli_sacred_texts",
+      "raw_subdir": "ganguli_sacred_texts",
+      "role": "reference_mirror"
+    }
+  ],
+  "bhagavad_gita_section_hint": {
+    "parva_number": 6,
+    "section_roman_from": "XXIII",
+    "section_roman_to": "XL",
+    "note": "Heuristic for contains_gita; Ganguli sectioning can differ slightly by print—treat as advisory."
+  }
+}
