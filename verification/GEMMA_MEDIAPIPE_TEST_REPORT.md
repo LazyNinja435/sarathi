@@ -35,7 +35,7 @@
 ## Baseline Safety Results
 
 - **Git:** Repository was **not** initialized; `git init` performed. `.gitignore` updated per milestone (including `*.task`, `models/`, `local-models/`, `.venv/`, `verification/gemma_mediapipe_logcat.txt`, `__pycache__/`).
-- **Commit:** `e92c4d951869892889f9bfc63b9908b68e0ab690` (full hash recorded in `verification/GEMMA_TEST_BASELINE.md` after commit).
+- **Commit:** `031024f25fdf6646f76ecc2761bc84ebc0f0464c` (matches `verification/GEMMA_TEST_BASELINE.md`).
 - **Stability:** No `git clean`; no RAG rebuild; no changes to RAG corpus JSONL/SQLite sources beyond existing tracked assets.
 
 ---
