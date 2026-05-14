@@ -5,7 +5,7 @@
 ## Git
 
 - **Repository:** initialized at `D:\MyProjects\Sarathi` (was not a git repo before this milestone).
-- **Baseline commit:** `e92c4d951869892889f9bfc63b9908b68e0ab690`
+- **Baseline commit:** `031024f25fdf6646f76ecc2761bc84ebc0f0464c`
 
 ## Build status
 
