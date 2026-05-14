@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -15,11 +18,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.sarathi.app.model.GuidanceSurface
 import com.sarathi.app.ui.theme.SacredGold
 import com.sarathi.app.ui.theme.SoftGold
 
 @Composable
-fun OfflineBadge(modifier: Modifier = Modifier) {
+fun OfflineBadge(
+    modifier: Modifier = Modifier,
+    surface: GuidanceSurface = GuidanceSurface.OfflineGuidance,
+) {
+    val (title, subtitle, icon) = when (surface) {
+        GuidanceSurface.Practice -> Triple(
+            "Practice mode",
+            "Warm guidance without loading the large model",
+            Icons.Outlined.Spa,
+        )
+        GuidanceSurface.OnDeviceGemma -> Triple(
+            "On-device wisdom",
+            "Gemma runs privately on this device",
+            Icons.Outlined.Psychology,
+        )
+        GuidanceSurface.OnDeviceMediaPipe -> Triple(
+            "On-device wisdom",
+            "Guidance runs with the bundled engine",
+            Icons.Outlined.Psychology,
+        )
+        GuidanceSurface.OfflineGuidance -> Triple(
+            "Offline guidance",
+            "No cloud required — install Gemma for fuller replies",
+            Icons.Outlined.WifiOff,
+        )
+    }
     Row(
         modifier = modifier
             .border(1.dp, SacredGold, RoundedCornerShape(50))
@@ -28,20 +57,30 @@ fun OfflineBadge(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.WifiOff,
+            imageVector = icon,
             contentDescription = null,
             tint = SacredGold,
         )
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = SoftGold,
+                )
+                if (surface == GuidanceSurface.OnDeviceGemma || surface == GuidanceSurface.OnDeviceMediaPipe) {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = SacredGold.copy(alpha = 0.55f),
+                        modifier = Modifier.padding(start = 2.dp),
+                    )
+                }
+            }
             Text(
-                text = "Offline Mode",
-                style = MaterialTheme.typography.labelLarge,
-                color = SoftGold,
-            )
-            Text(
-                text = "No internet needed",
-                style = MaterialTheme.typography.bodyMedium,
-                color = SoftGold.copy(alpha = 0.85f),
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = SoftGold.copy(alpha = 0.82f),
             )
         }
     }

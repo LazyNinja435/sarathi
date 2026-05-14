@@ -67,8 +67,8 @@ fun VerseScreen(
                 OfflineBadge()
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text("Today's Whisper", style = MaterialTheme.typography.headlineMedium, color = SacredGold)
-                Text("Verse of the Day", style = MaterialTheme.typography.titleMedium, color = SoftGold)
+                Text("Verse of the Day", style = MaterialTheme.typography.headlineMedium, color = SacredGold)
+                Text("Today's whisper", style = MaterialTheme.typography.titleMedium, color = SoftGold.copy(alpha = 0.9f))
                 Spacer(Modifier.height(8.dp))
                 PeacockFeatherEmblem()
             }

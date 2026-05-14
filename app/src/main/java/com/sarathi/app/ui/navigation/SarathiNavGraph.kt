@@ -143,6 +143,11 @@ fun SarathiNavGraph(
                 SettingsScreen(
                     settingsViewModel = vm,
                     onBack = { navController.popBackStack() },
+                    onResetOnboarding = {
+                        navController.navigate(Routes.SPLASH) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    },
                 )
             }
         }

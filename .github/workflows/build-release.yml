@@ -1,0 +1,50 @@
+name: Build release APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release-apk:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode release keystore
+        shell: pwsh
+        env:
+          SARATHI_RELEASE_KEYSTORE_B64: ${{ secrets.SARATHI_RELEASE_KEYSTORE_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SARATHI_RELEASE_KEYSTORE_B64)) { throw "Missing secret SARATHI_RELEASE_KEYSTORE_B64" }
+          $dir = Join-Path $env:RUNNER_TEMP "keystore"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $bytes = [Convert]::FromBase64String($env:SARATHI_RELEASE_KEYSTORE_B64)
+          $path = Join-Path $dir "sarathi-release.jks"
+          [IO.File]::WriteAllBytes($path, $bytes)
+          "SARATHI_KEYSTORE_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Assemble release
+        shell: pwsh
+        env:
+          SARATHI_KEYSTORE_PASSWORD: ${{ secrets.SARATHI_KEYSTORE_PASSWORD }}
+          SARATHI_KEY_ALIAS: ${{ secrets.SARATHI_KEY_ALIAS }}
+          SARATHI_KEY_PASSWORD: ${{ secrets.SARATHI_KEY_PASSWORD }}
+        run: ./gradlew.bat :app:assembleRelease --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarathi-release-apk
+          path: app/build/outputs/apk/release/app-release.apk

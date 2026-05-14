@@ -64,4 +64,13 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setDharmaNote(value: String) {
         context.dataStore.edit { it[Keys.dharmaNote] = value }
     }
+
+    /** Clears onboarding progress so splash/name/tone/blessing run again; keeps model paths and practice toggle. */
+    suspend fun resetOnboarding() {
+        context.dataStore.edit { p ->
+            p.remove(Keys.onboardingComplete)
+            p.remove(Keys.userName)
+            p.remove(Keys.selectedTone)
+        }
+    }
 }

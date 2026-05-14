@@ -35,25 +35,25 @@ fun SplashScreen(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 PeacockFeatherEmblem()
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(28.dp))
                 Text(
                     text = "Sarathi",
                     style = MaterialTheme.typography.displayLarge,
                     color = SacredGold,
                     textAlign = TextAlign.Center,
                 )
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(22.dp))
                 Text(
                     text = "When the heart grows quiet,\nthe charioteer speaks.",
                     style = MaterialTheme.typography.titleLarge,
                     color = SoftGold,
                     textAlign = TextAlign.Center,
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(18.dp))
                 Text(
                     text = "Welcome, dear one.",
                     style = MaterialTheme.typography.titleMedium,
-                    color = SoftGold,
+                    color = SoftGold.copy(alpha = 0.92f),
                     textAlign = TextAlign.Center,
                 )
             }

@@ -24,6 +24,7 @@ fun SacredTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     placeholder: String = "",
     singleLine: Boolean = true,
     minLines: Int = 1,
@@ -36,6 +37,7 @@ fun SacredTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .border(1.dp, SacredGold, shape)
@@ -55,7 +57,8 @@ fun SacredTextField(
         colors = TextFieldDefaults.colors(
             focusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
             unfocusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
-            disabledContainerColor = IndigoBubble.copy(alpha = 0.92f),
+            disabledContainerColor = IndigoBubble.copy(alpha = 0.65f),
+            disabledTextColor = SoftGold.copy(alpha = 0.45f),
             focusedTextColor = SoftGold,
             unfocusedTextColor = SoftGold,
             cursorColor = SacredGold,

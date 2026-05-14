@@ -3,6 +3,8 @@ package com.sarathi.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.sarathi.app.SarathiApp
+import com.sarathi.app.modeldownload.ModelInstallViewModel
+import com.sarathi.app.update.UpdateViewModel
 
 @Suppress("UNCHECKED_CAST")
 class SarathiViewModelFactory(
@@ -16,7 +18,11 @@ class SarathiViewModelFactory(
             modelClass.isAssignableFrom(OnboardingViewModel::class.java) ->
                 OnboardingViewModel(app.userPreferencesRepository) as T
             modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-                SettingsViewModel(app, app.userPreferencesRepository) as T
+                SettingsViewModel(app, app.userPreferencesRepository, app.ragRepository) as T
+            modelClass.isAssignableFrom(UpdateViewModel::class.java) ->
+                UpdateViewModel(app) as T
+            modelClass.isAssignableFrom(ModelInstallViewModel::class.java) ->
+                ModelInstallViewModel(app) as T
             modelClass.isAssignableFrom(DharmaViewModel::class.java) ->
                 DharmaViewModel(app.dharmaRepository) as T
             modelClass.isAssignableFrom(VerseViewModel::class.java) ->

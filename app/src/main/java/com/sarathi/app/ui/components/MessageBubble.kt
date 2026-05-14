@@ -1,6 +1,7 @@
 package com.sarathi.app.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sarathi.app.model.ChatMessage
 import com.sarathi.app.model.Sender
 import com.sarathi.app.ui.theme.Ink
@@ -30,47 +32,55 @@ fun MessageBubble(
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.sender == Sender.User
-    Row(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Top,
     ) {
-        if (!isUser) {
-            Icon(
-                imageVector = Icons.Default.Spa,
-                contentDescription = null,
-                tint = SacredGold,
-                modifier = Modifier.padding(top = 8.dp, end = 8.dp),
-            )
-        }
-        Column(
-            modifier = Modifier.widthIn(max = 320.dp),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+        val bubbleMax = (maxWidth * 0.92f).coerceAtMost(560.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Top,
         ) {
-            if (isUser) {
-                SacredCard(variant = SacredCardVariant.Indigo) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = SoftGold,
-                    )
-                    Text(
-                        text = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(message.timestampMillis)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SoftGold.copy(alpha = 0.55f),
-                        modifier = Modifier.padding(top = 6.dp),
-                    )
-                }
-            } else {
-                SacredCard(variant = SacredCardVariant.Parchment) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Ink,
-                        textAlign = TextAlign.Start,
-                    )
+            if (!isUser) {
+                Icon(
+                    imageVector = Icons.Default.Spa,
+                    contentDescription = null,
+                    tint = SacredGold,
+                    modifier = Modifier.padding(top = 8.dp, end = 8.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.widthIn(max = bubbleMax),
+                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            ) {
+                if (isUser) {
+                    SacredCard(variant = SacredCardVariant.Indigo) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                            color = SoftGold,
+                        )
+                        Text(
+                            text = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(message.timestampMillis)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SoftGold.copy(alpha = 0.55f),
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                } else {
+                    SacredCard(variant = SacredCardVariant.Parchment) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                lineHeight = 26.sp,
+                                letterSpacing = 0.15.sp,
+                            ),
+                            color = Ink,
+                            textAlign = TextAlign.Start,
+                        )
+                    }
                 }
             }
         }

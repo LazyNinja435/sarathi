@@ -1,5 +1,6 @@
 package com.sarathi.app.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,11 +13,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,10 +28,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sarathi.app.BuildConfig
+import com.sarathi.app.SarathiApp
 import com.sarathi.app.llm.ModelManager
+import com.sarathi.app.modeldownload.ModelDownloadUiState
+import com.sarathi.app.modeldownload.ModelInstallViewModel
+import com.sarathi.app.update.ApkInstaller
+import com.sarathi.app.update.UpdateUiState
+import com.sarathi.app.update.UpdateViewModel
+import com.sarathi.app.model.LlmModelFileKind
+import com.sarathi.app.model.LlmRuntimeKind
 import com.sarathi.app.model.ModelStatus
 import com.sarathi.app.ui.components.SacredBackground
 import com.sarathi.app.ui.components.SacredButton
@@ -45,22 +59,51 @@ import com.sarathi.app.viewmodel.SettingsViewModel
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
     onBack: () -> Unit,
+    onResetOnboarding: () -> Unit,
 ) {
     LaunchedEffect(Unit) {
         settingsViewModel.refreshModelStatus()
     }
     val prefs by settingsViewModel.preferences.collectAsStateWithLifecycle()
     val status by settingsViewModel.modelStatus.collectAsStateWithLifecycle()
+    val diag by settingsViewModel.llmDiagnostics.collectAsStateWithLifecycle()
+    val ragReady by settingsViewModel.ragReady.collectAsStateWithLifecycle()
+    LaunchedEffect(prefs.useMockMode, prefs.customModelPath) {
+        settingsViewModel.refreshModelStatus()
+    }
     var showHelp by remember { mutableStateOf(false) }
-    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var showAbout by remember { mutableStateOf(false) }
+    var devOpen by remember { mutableStateOf(false) }
+    var confirmReset by remember { mutableStateOf(false) }
+    val ctx = LocalContext.current
+    val app = ctx.applicationContext as SarathiApp
+    val activity = ctx as? Activity
+    val updateVm: UpdateViewModel = viewModel(factory = app.viewModelFactory)
+    val modelVm: ModelInstallViewModel = viewModel(factory = app.viewModelFactory)
+    val updateUi by updateVm.ui.collectAsStateWithLifecycle()
+    val modelUi by modelVm.ui.collectAsStateWithLifecycle()
+    val updateManifestUrl by updateVm.lastManifestUrl.collectAsStateWithLifecycle()
+    val apkSha by updateVm.lastDownloadedApkSha.collectAsStateWithLifecycle()
+    val updateLastError by updateVm.lastError.collectAsStateWithLifecycle()
+    val modelLastError by modelVm.lastError.collectAsStateWithLifecycle()
+    val liteRtMissing = remember(prefs.customModelPath, status) {
+        ModelManager.resolveLiteRtLmPath(ctx, prefs.customModelPath) == null
+    }
+    var showModelDownloadConfirm by remember { mutableStateOf(false) }
+    LaunchedEffect(modelUi) {
+        if (modelUi is ModelDownloadUiState.Installed) {
+            settingsViewModel.refreshModelStatus()
+            modelVm.acknowledgeInstalled()
+        }
+    }
 
     SacredBackground(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,77 +114,216 @@ fun SettingsScreen(
                 }
                 Text("Settings", style = MaterialTheme.typography.headlineSmall, color = SacredGold)
             }
+
             Text(
                 text = "Sarathi",
                 style = MaterialTheme.typography.titleLarge,
                 color = SoftGold,
             )
             Text(
-                text = "Offline companion — no internet required for mock mode.",
+                text = "A calm companion for the journey within — crafted for privacy and quiet reflection.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = SoftGold.copy(alpha = 0.9f),
+                color = SoftGold.copy(alpha = 0.88f),
             )
+
             SacredCard(variant = SacredCardVariant.Indigo) {
-                Text("Model status", style = MaterialTheme.typography.titleMedium, color = SacredGold)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = when (status) {
-                        is ModelStatus.Installed -> "Installed: ${(status as ModelStatus.Installed).path}"
-                        ModelStatus.Missing -> "Missing — mock responses are active unless you force mock mode."
-                        ModelStatus.Loading -> "Loading…"
-                        is ModelStatus.Error -> "Error: ${(status as ModelStatus.Error).message}"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SoftGold,
-                )
+                Text("Guidance & privacy", style = MaterialTheme.typography.titleMedium, color = SacredGold)
+                Spacer(Modifier.height(10.dp))
+                settingRow("Offline mode", "Enabled — your conversations stay on this device.")
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "The app works in mock mode until a compatible Gemma `.task` file is placed in the models folder (see MODEL_SETUP.md).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SoftGold.copy(alpha = 0.85f),
-                )
-            }
-            Text("Expected locations", style = MaterialTheme.typography.titleMedium, color = SacredGold)
-            SacredCard(variant = SacredCardVariant.Parchment) {
-                ModelManager.expectedPathHints(ctx).forEach { path ->
-                    Text(
-                        text = path,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Ink,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                    Spacer(Modifier.height(4.dp))
+                settingRow("Guidance engine", friendlyEngineLabel(prefs.useMockMode, diag.activeRuntime))
+                Spacer(Modifier.height(8.dp))
+                settingRow("Model status", friendlyModelStatus(status))
+                Spacer(Modifier.height(8.dp))
+                settingRow("Tone of voice", prefs.selectedTone.label)
+                Spacer(Modifier.height(12.dp))
+                SacredButton(onClick = { settingsViewModel.refreshModelStatus() }) {
+                    SacredButtonLabel("Check model")
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+
+            SacredCard(variant = SacredCardVariant.Indigo) {
+                Text("Update Sarathi", style = MaterialTheme.typography.titleMedium, color = SacredGold)
+                Spacer(Modifier.height(10.dp))
+                settingRow("App version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                Spacer(Modifier.height(10.dp))
+                SacredButton(onClick = { updateVm.checkForUpdates() }) {
+                    SacredButtonLabel("Check for updates")
+                }
+                Spacer(Modifier.height(10.dp))
+                when (val u = updateUi) {
+                    UpdateUiState.Idle -> { }
+                    UpdateUiState.Checking -> Text("Checking…", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                    is UpdateUiState.UpToDate -> Text("Sarathi is up to date.", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                    is UpdateUiState.UpdateAvailable -> {
+                        Text("A new version is available.", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(6.dp))
+                        Text("Version ${u.versionName}", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                        Text("APK size: ${formatBytes(u.apkSizeBytes)}", color = SoftGold, style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(onClick = { updateVm.downloadUpdate() }) {
+                            SacredButtonLabel("Download update")
+                        }
+                    }
+                    UpdateUiState.Downloading -> Text("Downloading update…", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                    UpdateUiState.ReadyToInstall -> {
+                        Text(
+                            "Android will ask you to confirm installation.",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(
+                            onClick = {
+                                val act = activity
+                                if (act == null) return@SacredButton
+                                if (!ApkInstaller.canInstallPackages(act)) {
+                                    ApkInstaller.openInstallPermissionSettings(act)
+                                } else {
+                                    ApkInstaller.installDownloadedApk(act, updateVm.pendingUpdateApkFile())
+                                }
+                            },
+                        ) {
+                            SacredButtonLabel("Install update")
+                        }
+                    }
+                    is UpdateUiState.Error -> {
+                        Text(u.message, color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        SacredButton(onClick = { updateVm.resetAfterError() }) {
+                            SacredButtonLabel("Dismiss", inkOnParchment = false)
+                        }
+                    }
+                }
+            }
+
+            if (liteRtMissing) {
+                SacredCard(variant = SacredCardVariant.Indigo) {
+                    Text("Offline model", style = MaterialTheme.typography.titleMedium, color = SacredGold)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "On-device wisdom is not installed yet.",
+                        color = SoftGold,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SacredButton(onClick = { showModelDownloadConfirm = true }) {
+                        SacredButtonLabel("Download offline model")
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    when (val m = modelUi) {
+                        ModelDownloadUiState.Idle -> { }
+                        ModelDownloadUiState.FetchingManifest -> Text("Preparing download…", color = SoftGold)
+                        ModelDownloadUiState.Downloading -> Text("Downloading…", color = SoftGold)
+                        is ModelDownloadUiState.Progress -> {
+                            Text(m.label, color = SoftGold, style = MaterialTheme.typography.bodySmall)
+                            val total = m.totalBytes.coerceAtLeast(1L)
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "${formatBytes(m.downloadedBytes)} / ${formatBytes(m.totalBytes)}",
+                                color = SoftGold,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        ModelDownloadUiState.Verifying -> Text("Verifying…", color = SoftGold)
+                        ModelDownloadUiState.Installed -> Text("Model installed.", color = SoftGold)
+                        is ModelDownloadUiState.Error -> {
+                            Text(m.message, color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.height(8.dp))
+                            SacredButton(onClick = { modelVm.resetAfterError() }) {
+                                SacredButtonLabel("Dismiss", inkOnParchment = false)
+                            }
+                        }
+                    }
+                }
+            }
+
+            SacredButton(
+                onClick = { confirmReset = true },
+                style = SacredButtonStyle.GoldOutline,
             ) {
-                Text("Use mock mode", color = SoftGold, style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = prefs.useMockMode,
-                    onCheckedChange = { settingsViewModel.setUseMockMode(it) },
-                )
+                SacredButtonLabel("Reset onboarding journey", inkOnParchment = false)
             }
-            SacredButton(onClick = { settingsViewModel.refreshModelStatus() }) {
-                SacredButtonLabel("Check model")
+
+            SacredButton(
+                onClick = { showAbout = true },
+                style = SacredButtonStyle.GoldOutline,
+            ) {
+                SacredButtonLabel("About Sarathi", inkOnParchment = false)
             }
+
+            SacredButton(
+                onClick = { devOpen = !devOpen },
+                style = SacredButtonStyle.GoldOutline,
+            ) {
+                SacredButtonLabel(if (devOpen) "Hide developer diagnostics" else "Developer diagnostics", inkOnParchment = false)
+            }
+
+            if (devOpen) {
+                SacredCard(variant = SacredCardVariant.Parchment) {
+                    Text("Developer diagnostics", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Spacer(Modifier.height(8.dp))
+                    monoLine("Active runtime", runtimeLabel(diag.activeRuntime))
+                    monoLine("Model path", diag.selectedPath ?: "(none)")
+                    monoLine("Model file type", modelFileLabel(diag.modelFileKind))
+                    monoLine("RAG database", if (ragReady) "Ready" else "Missing or not loaded")
+                    monoLine("Last inference error", settingsViewModel.lastInferenceError() ?: "(none)")
+                    monoLine("Manifest URL (updates)", updateManifestUrl)
+                    monoLine("Downloaded update APK SHA", apkSha ?: "(none)")
+                    monoLine("Last update error", updateLastError ?: "(none)")
+                    monoLine("Last model download error", modelLastError ?: "(none)")
+                    Spacer(Modifier.height(8.dp))
+                    SacredButton(onClick = { settingsViewModel.refreshModelStatus() }) {
+                        SacredButtonLabel("Refresh diagnostics", inkOnParchment = true)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Practice mode", style = MaterialTheme.typography.bodyLarge, color = Ink)
+                            Text(
+                                "Uses warm scripted guidance without Gemma.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Ink.copy(alpha = 0.75f),
+                            )
+                        }
+                        Switch(
+                            checked = prefs.useMockMode,
+                            onCheckedChange = { settingsViewModel.setUseMockMode(it) },
+                        )
+                    }
+                }
+                SacredCard(variant = SacredCardVariant.Indigo) {
+                    Text("Expected model paths", style = MaterialTheme.typography.titleSmall, color = SacredGold)
+                    Spacer(Modifier.height(6.dp))
+                    ModelManager.expectedPathHints(ctx).take(8).forEach { path ->
+                        Text(
+                            text = path,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SoftGold,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
+            }
+
             SacredButton(
                 onClick = { showHelp = !showHelp },
                 style = SacredButtonStyle.GoldOutline,
             ) {
-                SacredButtonLabel(if (showHelp) "Hide setup instructions" else "Open setup instructions", inkOnParchment = false)
+                SacredButtonLabel(if (showHelp) "Hide setup instructions" else "Model setup instructions", inkOnParchment = false)
             }
             if (showHelp) {
                 SacredCard(variant = SacredCardVariant.Parchment) {
                     Text(
-                        text = "1) Obtain a compatible Gemma `.task` bundle from Google / MediaPipe documentation (terms may apply).\n\n" +
-                            "2) Copy the file to your device at either:\n" +
-                            "   • Android/data/<package>/files/models/gemma.task (via Device Explorer), or\n" +
-                            "   • /sdcard/Download/sarathi/gemma.task (if accessible on your device).\n\n" +
-                            "3) Tap \"Check model\". If installed, Sarathi will use MediaPipe for replies.\n\n" +
-                            "TODO: optional in-app downloader for approved bundles.",
+                        text = "1) Obtain a Gemma LiteRT-LM .litertlm (recommended) or a MediaPipe-compatible .task bundle from official channels (terms may apply).\n\n" +
+                            "2) Place the file in app-private storage (recommended), for example files/models/ with the expected filename. Public Download folders may be blocked on modern Android.\n\n" +
+                            "3) Tap \"Check model\". When a .litertlm is present and practice mode is off, Sarathi uses LiteRT-LM; otherwise it tries MediaPipe for .task files.\n\n" +
+                            "Optional: use the Sarathi Pixel Bundle install script for a repeatable private copy.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Ink,
                     )
@@ -149,4 +331,124 @@ fun SettingsScreen(
             }
         }
     }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmReset = false
+                        settingsViewModel.resetOnboarding(onResetOnboarding)
+                    },
+                ) { Text("Reset", color = SacredGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) { Text("Cancel") }
+            },
+            title = { Text("Reset onboarding?") },
+            text = { Text("You will return to the welcome path. Your model files are not removed.") },
+        )
+    }
+
+    if (showAbout) {
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            confirmButton = {
+                TextButton(onClick = { showAbout = false }) { Text("Close", color = SacredGold) }
+            },
+            title = { Text("About Sarathi") },
+            text = {
+                Text(
+                    "Sarathi is a Krishna-inspired companion rooted in the spirit of the Bhagavad Gita — " +
+                        "meant to steady the heart, clarify duty, and speak with warmth. " +
+                        "It is not a generic chatbot: it is a charioteer for your inner battlefield.",
+                )
+            },
+        )
+    }
+
+    if (showModelDownloadConfirm) {
+        AlertDialog(
+            onDismissRequest = { showModelDownloadConfirm = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showModelDownloadConfirm = false
+                        modelVm.startDownload()
+                    },
+                ) { Text("Download", color = SacredGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showModelDownloadConfirm = false }) { Text("Cancel") }
+            },
+            title = { Text("Download offline model?") },
+            text = {
+                Text(
+                    "This download is about 2.6 GB. Wi‑Fi is recommended. Keep Sarathi open until it finishes. " +
+                        "The model is stored once in app-private storage (not your public Downloads folder).",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun settingRow(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = SacredGold.copy(alpha = 0.9f))
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.bodyLarge, color = SoftGold)
+    }
+}
+
+@Composable
+private fun monoLine(label: String, value: String) {
+    Text(label, style = MaterialTheme.typography.labelSmall, color = Ink.copy(alpha = 0.65f))
+    Text(
+        value,
+        style = MaterialTheme.typography.bodySmall,
+        color = Ink,
+        fontFamily = FontFamily.Monospace,
+    )
+    Spacer(Modifier.height(6.dp))
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    var v = bytes.toDouble()
+    var i = 0
+    while (v >= 1024 && i < units.lastIndex) {
+        v /= 1024.0
+        i++
+    }
+    return String.format("%.1f %s", v, units[i])
+}
+
+private fun friendlyEngineLabel(mock: Boolean, active: LlmRuntimeKind): String = when {
+    mock -> "Practice mode"
+    active == LlmRuntimeKind.LiteRtLm -> "On-device Gemma"
+    active == LlmRuntimeKind.MediaPipe -> "On-device Gemma (classic engine)"
+    else -> "Offline guidance (scripted replies)"
+}
+
+private fun friendlyModelStatus(status: ModelStatus): String = when (status) {
+    is ModelStatus.Installed -> "Ready"
+    ModelStatus.Missing -> "Not installed"
+    ModelStatus.Loading -> "Loading…"
+    is ModelStatus.Error -> "Error — ${status.message}"
+}
+
+private fun runtimeLabel(kind: LlmRuntimeKind): String = when (kind) {
+    LlmRuntimeKind.Mock -> "Mock / fallback"
+    LlmRuntimeKind.LiteRtLm -> "LiteRT-LM"
+    LlmRuntimeKind.MediaPipe -> "MediaPipe"
+}
+
+private fun modelFileLabel(kind: LlmModelFileKind): String = when (kind) {
+    LlmModelFileKind.Missing -> "Missing"
+    LlmModelFileKind.LiteRtLm -> "LiteRT-LM .litertlm"
+    LlmModelFileKind.MediaPipeTask -> "MediaPipe .task"
 }

@@ -33,6 +33,27 @@ Debug APK output:
 
 `app\build\outputs\apk\debug\app-debug.apk`
 
+## Install / update from GitHub Releases
+
+Official repo: https://github.com/LazyNinja435/sarathi
+
+- **First install**: open the latest **GitHub Release**, download `sarathi-v<version>.apk`, and complete Android’s install prompt.
+- **Check for app updates**: **Settings → Update Sarathi → Check for updates** (downloads `sarathi-latest.json`, compares `versionCode`, then optionally downloads a verified APK — still requires Android’s installer prompt).
+- **Download the offline Gemma model**: **Settings → Download offline model** (chunked download from release assets into **app-private** `files/models/`).
+
+See **`docs/GITHUB_RELEASE_DISTRIBUTION.md`** and **`docs/IN_APP_UPDATES.md`** for maintainer packaging (`dist/github-release/`) and troubleshooting.
+
+## Release APK (signed, maintainer)
+
+```powershell
+# After exporting SARATHI_KEYSTORE_* env vars — see docs/ANDROID_RELEASE_SIGNING.md
+.\scripts\build-release-apk.ps1
+```
+
+Release APK is copied to:
+
+`dist/github-release/sarathi-v<version>.apk` (ignored by git)
+
 ## Install on a physical device
 
 - USB debugging enabled on the phone  

@@ -3,12 +3,14 @@
 .gradle
 /local.properties
 .venv/
+.venv-models/
 *.task
 *.tflite
 *.litertlm
 models/
 app/src/main/assets/models/
 local-models/
+dist/
 verification/*.log
 verification/gemma_mediapipe_logcat.txt
 __pycache__/
@@ -27,4 +29,8 @@ captures
 *.class
 *.log
 *.keystore
+*.jks
 !debug.keystore
+signing.properties
+release-secrets/
+.github/tmp/

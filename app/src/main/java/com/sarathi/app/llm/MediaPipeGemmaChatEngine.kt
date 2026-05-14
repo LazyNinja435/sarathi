@@ -79,6 +79,7 @@ class MediaPipeGemmaChatEngine(
                     )
                     val out = future.awaitString()
                     Log.i(TAG, "generateReply end chars=${out.length}")
+                    LlmLastErrorStore.clear()
                     out
                 } finally {
                     session.close()
@@ -86,6 +87,7 @@ class MediaPipeGemmaChatEngine(
             }
         } catch (t: Throwable) {
             Log.w(TAG, "MediaPipe inference failed, using mock: ${t.message}", t)
+            LlmLastErrorStore.set(t.message ?: t::class.java.simpleName)
             fallback.generateReply(userMessage, history, userName, tone, retrievedContext)
         }
     }
