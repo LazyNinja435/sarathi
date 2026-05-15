@@ -5,16 +5,18 @@ import com.sarathi.app.BuildConfig
 object AppUpdateManager {
 
     fun compareWithManifest(manifest: ReleaseManifest): UpdateComparison {
-        val remote = manifest.app.versionCode
+        val app = manifest.app
+            ?: error("Release manifest is missing app metadata; cannot check for app updates.")
+        val remote = app.versionCode
         val local = BuildConfig.VERSION_CODE
         return when {
             remote > local -> UpdateComparison.UpdateAvailable(
-                versionName = manifest.app.versionName,
-                apkSizeBytes = manifest.app.apkSizeBytes,
+                versionName = app.versionName,
+                apkSizeBytes = app.apkSizeBytes,
                 manifest = manifest,
             )
             else -> UpdateComparison.UpToDate(
-                versionName = manifest.app.versionName,
+                versionName = app.versionName,
                 remoteVersionCode = remote,
             )
         }

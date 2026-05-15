@@ -36,9 +36,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sarathi.app.BuildConfig
 import com.sarathi.app.SarathiApp
 import com.sarathi.app.llm.ModelManager
+import com.sarathi.app.model.OnDeviceWisdomStatus
+import com.sarathi.app.modeldownload.ModelDownloadAction
 import com.sarathi.app.modeldownload.ModelDownloadUiState
 import com.sarathi.app.modeldownload.ModelInstallViewModel
 import com.sarathi.app.update.ApkInstaller
+import com.sarathi.app.update.ManifestCache
+import com.sarathi.app.update.ReleaseManifest
 import com.sarathi.app.update.UpdateUiState
 import com.sarathi.app.update.UpdateViewModel
 import com.sarathi.app.model.LlmModelFileKind
@@ -86,10 +90,14 @@ fun SettingsScreen(
     val apkSha by updateVm.lastDownloadedApkSha.collectAsStateWithLifecycle()
     val updateLastError by updateVm.lastError.collectAsStateWithLifecycle()
     val modelLastError by modelVm.lastError.collectAsStateWithLifecycle()
-    val liteRtMissing = remember(prefs.customModelPath, status) {
-        ModelManager.resolveLiteRtLmPath(ctx, prefs.customModelPath) == null
+    val manifestRev by ManifestCache.revision.collectAsStateWithLifecycle()
+    val wisdom = remember(prefs.customModelPath, manifestRev) {
+        OnDeviceWisdomStatus.evaluate(ctx, prefs.customModelPath)
     }
     var showModelDownloadConfirm by remember { mutableStateOf(false) }
+    var showModelUpdateConfirm by remember { mutableStateOf(false) }
+    var showModelVerifyConfirm by remember { mutableStateOf(false) }
+    var dismissedUpdate by remember { mutableStateOf(false) }
     LaunchedEffect(modelUi) {
         if (modelUi is ModelDownloadUiState.Installed) {
             settingsViewModel.refreshModelStatus()
@@ -147,7 +155,10 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 settingRow("App version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
                 Spacer(Modifier.height(10.dp))
-                SacredButton(onClick = { updateVm.checkForUpdates() }) {
+                SacredButton(onClick = {
+                    dismissedUpdate = false
+                    updateVm.checkForUpdates()
+                }) {
                     SacredButtonLabel("Check for updates")
                 }
                 Spacer(Modifier.height(10.dp))
@@ -156,13 +167,77 @@ fun SettingsScreen(
                     UpdateUiState.Checking -> Text("Checking…", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
                     is UpdateUiState.UpToDate -> Text("Sarathi is up to date.", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
                     is UpdateUiState.UpdateAvailable -> {
-                        Text("A new version is available.", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(6.dp))
-                        Text("Version ${u.versionName}", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
-                        Text("APK size: ${formatBytes(u.apkSizeBytes)}", color = SoftGold, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(10.dp))
-                        SacredButton(onClick = { updateVm.downloadUpdate() }) {
-                            SacredButtonLabel("Download update")
+                        if (dismissedUpdate) {
+                            Text(
+                                "An update is still available when you are ready.",
+                                color = SoftGold,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        } else {
+                            Text("App update available", color = SoftGold, style = MaterialTheme.typography.titleSmall)
+                            Spacer(Modifier.height(6.dp))
+                            when (u.manifest.release.releaseType) {
+                                ReleaseManifest.ReleaseType.APP_ONLY -> {
+                                    Text(
+                                        "This update improves Sarathi. Your offline wisdom model will remain installed.",
+                                        color = SoftGold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                                ReleaseManifest.ReleaseType.FULL_MODEL,
+                                ReleaseManifest.ReleaseType.MODEL_ONLY,
+                                -> {
+                                    if (u.manifest.app?.requiresModelUpdate == true) {
+                                        Text(
+                                            "This version requires a newer offline model for on-device wisdom.",
+                                            color = SoftGold,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    } else {
+                                        Text(
+                                            "A newer offline model is also available, but you can update the app first.",
+                                            color = SoftGold,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text("Version ${u.versionName}", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                            Text("APK size: ${formatBytes(u.apkSizeBytes)}", color = SoftGold, style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.height(10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SacredButton(onClick = { updateVm.downloadUpdate() }) {
+                                    SacredButtonLabel(
+                                        when (u.manifest.release.releaseType) {
+                                            ReleaseManifest.ReleaseType.APP_ONLY -> "Download app update"
+                                            ReleaseManifest.ReleaseType.FULL_MODEL,
+                                            ReleaseManifest.ReleaseType.MODEL_ONLY,
+                                            ->
+                                                if (u.manifest.app?.requiresModelUpdate == true) "Update app" else "Download app update"
+                                        },
+                                    )
+                                }
+                                SacredButton(
+                                    onClick = { dismissedUpdate = true },
+                                    style = SacredButtonStyle.GoldOutline,
+                                ) {
+                                    SacredButtonLabel(
+                                        when (u.manifest.release.releaseType) {
+                                            ReleaseManifest.ReleaseType.APP_ONLY -> "Later"
+                                            ReleaseManifest.ReleaseType.FULL_MODEL,
+                                            ReleaseManifest.ReleaseType.MODEL_ONLY,
+                                            ->
+                                                if (u.manifest.app?.requiresModelUpdate == true) {
+                                                    "Download model after update"
+                                                } else {
+                                                    "Download model later"
+                                                }
+                                        },
+                                        inkOnParchment = false,
+                                    )
+                                }
+                            }
                         }
                     }
                     UpdateUiState.Downloading -> Text("Downloading update…", color = SoftGold, style = MaterialTheme.typography.bodyMedium)
@@ -197,42 +272,99 @@ fun SettingsScreen(
                 }
             }
 
-            if (liteRtMissing) {
-                SacredCard(variant = SacredCardVariant.Indigo) {
-                    Text("Offline model", style = MaterialTheme.typography.titleMedium, color = SacredGold)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "On-device wisdom is not installed yet.",
-                        color = SoftGold,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    SacredButton(onClick = { showModelDownloadConfirm = true }) {
-                        SacredButtonLabel("Download offline model")
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    when (val m = modelUi) {
-                        ModelDownloadUiState.Idle -> { }
-                        ModelDownloadUiState.FetchingManifest -> Text("Preparing download…", color = SoftGold)
-                        ModelDownloadUiState.Downloading -> Text("Downloading…", color = SoftGold)
-                        is ModelDownloadUiState.Progress -> {
-                            Text(m.label, color = SoftGold, style = MaterialTheme.typography.bodySmall)
-                            val total = m.totalBytes.coerceAtLeast(1L)
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "${formatBytes(m.downloadedBytes)} / ${formatBytes(m.totalBytes)}",
-                                color = SoftGold,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+            SacredCard(variant = SacredCardVariant.Indigo) {
+                Text("Offline model", style = MaterialTheme.typography.titleMedium, color = SacredGold)
+                Spacer(Modifier.height(8.dp))
+                when (wisdom) {
+                    OnDeviceWisdomStatus.Missing -> {
+                        Text(
+                            "Download offline model",
+                            color = SacredGold,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            "On-device wisdom is not installed yet.",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(onClick = { showModelDownloadConfirm = true }) {
+                            SacredButtonLabel("Download offline model")
                         }
-                        ModelDownloadUiState.Verifying -> Text("Verifying…", color = SoftGold)
-                        ModelDownloadUiState.Installed -> Text("Model installed.", color = SoftGold)
-                        is ModelDownloadUiState.Error -> {
-                            Text(m.message, color = SoftGold, style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.height(8.dp))
-                            SacredButton(onClick = { modelVm.resetAfterError() }) {
-                                SacredButtonLabel("Dismiss", inkOnParchment = false)
-                            }
+                    }
+                    OnDeviceWisdomStatus.Ready -> {
+                        Text(
+                            "On-device wisdom: Ready",
+                            color = SacredGold,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            "Your offline model is already installed. Gemma stays in app-private storage.",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(
+                            onClick = { showModelVerifyConfirm = true },
+                            style = SacredButtonStyle.GoldOutline,
+                        ) {
+                            SacredButtonLabel("Verify model", inkOnParchment = false)
+                        }
+                    }
+                    is OnDeviceWisdomStatus.OptionalModelUpdate -> {
+                        Text(
+                            "New offline model available",
+                            color = SacredGold,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            "Size: ${wisdom.approxSizeLabel}. The app will ask before downloading.",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(onClick = { showModelUpdateConfirm = true }) {
+                            SacredButtonLabel("Download model update")
+                        }
+                    }
+                    OnDeviceWisdomStatus.ModelUpdateRequired -> {
+                        Text(
+                            "Model update required for on-device wisdom",
+                            color = SacredGold,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            "This Sarathi version needs a newer offline model for on-device wisdom. Practice mode still works.",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        SacredButton(onClick = { showModelUpdateConfirm = true }) {
+                            SacredButtonLabel("Download model update")
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                when (val m = modelUi) {
+                    ModelDownloadUiState.Idle -> { }
+                    ModelDownloadUiState.FetchingManifest -> Text("Preparing…", color = SoftGold)
+                    ModelDownloadUiState.Downloading -> Text("Downloading…", color = SoftGold)
+                    is ModelDownloadUiState.Progress -> {
+                        Text(m.label, color = SoftGold, style = MaterialTheme.typography.bodySmall)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "${formatBytes(m.downloadedBytes)} / ${formatBytes(m.totalBytes)}",
+                            color = SoftGold,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    ModelDownloadUiState.Verifying -> Text("Verifying model (this can take a while)…", color = SoftGold)
+                    ModelDownloadUiState.Installed -> Text("Model install or verification finished.", color = SoftGold)
+                    is ModelDownloadUiState.Error -> {
+                        Text(m.message, color = SoftGold, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(8.dp))
+                        SacredButton(onClick = { modelVm.resetAfterError() }) {
+                            SacredButtonLabel("Dismiss", inkOnParchment = false)
                         }
                     }
                 }
@@ -375,7 +507,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showModelDownloadConfirm = false
-                        modelVm.startDownload()
+                        modelVm.startDownload(action = ModelDownloadAction.INSTALL_MODEL)
                     },
                 ) { Text("Download", color = SacredGold) }
             },
@@ -387,6 +519,55 @@ fun SettingsScreen(
                 Text(
                     "This download is about 2.6 GB. Wi‑Fi is recommended. Keep Sarathi open until it finishes. " +
                         "The model is stored once in app-private storage (not your public Downloads folder).",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+        )
+    }
+
+    if (showModelVerifyConfirm) {
+        AlertDialog(
+            onDismissRequest = { showModelVerifyConfirm = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showModelVerifyConfirm = false
+                        modelVm.startDownload(action = ModelDownloadAction.VERIFY_MODEL)
+                    },
+                ) { Text("Verify", color = SacredGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showModelVerifyConfirm = false }) { Text("Cancel") }
+            },
+            title = { Text("Verify model?") },
+            text = {
+                Text(
+                    "Sarathi will compute a SHA-256 of your on-device model. This can take several minutes for a large file.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+        )
+    }
+
+    if (showModelUpdateConfirm) {
+        AlertDialog(
+            onDismissRequest = { showModelUpdateConfirm = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showModelUpdateConfirm = false
+                        modelVm.startDownload(action = ModelDownloadAction.UPDATE_MODEL)
+                    },
+                ) { Text("Download", color = SacredGold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showModelUpdateConfirm = false }) { Text("Cancel") }
+            },
+            title = { Text("Download model update?") },
+            text = {
+                Text(
+                    "This download is about 2.6 GB. Wi‑Fi is recommended. Keep Sarathi open until it finishes. " +
+                        "The model stays in app-private storage.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },

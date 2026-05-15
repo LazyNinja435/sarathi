@@ -38,6 +38,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             runCatching {
                 val text = GithubReleaseClient.downloadText(manifestUrl)
                 val manifest = ReleaseManifest.parse(text)
+                if (manifest.app == null) {
+                    throw IllegalStateException(
+                        "The Sarathi release manifest is missing app details. Try again later or contact support.",
+                    )
+                }
+                ManifestCache.save(getApplication(), text)
                 when (val cmp = AppUpdateManager.compareWithManifest(manifest)) {
                     is AppUpdateManager.UpdateComparison.UpToDate -> {
                         cachedManifest = manifest

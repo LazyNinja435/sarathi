@@ -1,5 +1,10 @@
 package com.sarathi.app.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +63,24 @@ fun SarathiNavGraph(
         NavHost(
             navController = navController,
             startDestination = sr,
+            enterTransition = {
+                fadeIn(animationSpec = tween(520)) + scaleIn(
+                    initialScale = 0.985f,
+                    animationSpec = tween(520),
+                )
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(520)) + scaleOut(
+                    targetScale = 1.015f,
+                    animationSpec = tween(520),
+                )
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(420))
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(420))
+            },
         ) {
             composable(Routes.SPLASH) {
                 SplashScreen(

@@ -2,7 +2,10 @@ package com.sarathi.app.modeldownload
 
 import android.content.Context
 import android.os.StatFs
+import com.sarathi.app.llm.ModelManager
+import com.sarathi.app.model.InstalledModelInfo
 import com.sarathi.app.update.GithubReleaseClient
+import com.sarathi.app.update.ManifestCache
 import com.sarathi.app.update.ReleaseManifest
 import com.sarathi.app.update.Sha256Util
 import kotlinx.coroutines.Dispatchers
@@ -34,12 +37,125 @@ class ModelDownloadManager(
             ReleaseManifest.parse(text)
         }
 
+    /**
+     * Resolves which manifest describes downloadable model chunks:
+     * 1) Cached app manifest (from update check) if it already lists chunks.
+     * 2) Otherwise same cached/fetched app manifest; if chunks are empty, fetch
+     *    [ReleaseManifest.resolvedExternalModelManifestUrl] when present.
+     * Does not replace the app manifest cache with a model-only JSON payload.
+     */
+    suspend fun resolveManifestForModelDownload(
+        manifestUrl: String = GithubReleaseClient.DEFAULT_LATEST_MANIFEST_URL,
+    ): ReleaseManifest = withContext(Dispatchers.IO) {
+        val cachedJson = ManifestCache.readJson(context)
+        val appManifest = when {
+            cachedJson != null -> {
+                val parsed = runCatching { ReleaseManifest.parse(cachedJson) }.getOrNull()
+                if (parsed?.app != null) {
+                    parsed
+                } else {
+                    fetchAndParseAppManifest(manifestUrl)
+                }
+            }
+            else -> fetchAndParseAppManifest(manifestUrl)
+        }
+
+        if (appManifest.model.chunks.isNotEmpty()) {
+            return@withContext appManifest
+        }
+
+        val externalUrl = appManifest.resolvedExternalModelManifestUrl()
+            ?: throw IllegalStateException(
+                "This Sarathi release does not list an offline model download. " +
+                    "Try again after the team publishes a model release, or use Practice mode in Settings.",
+            )
+
+        val externalText = try {
+            GithubReleaseClient.downloadText(externalUrl)
+        } catch (e: Exception) {
+            throw IllegalStateException(
+                "Could not load the offline model catalog. Check your network connection and try again. " +
+                    "(If you are offline, use Practice mode.)",
+                e,
+            )
+        }
+        val modelManifest = runCatching { ReleaseManifest.parse(externalText) }.getOrElse {
+            throw IllegalStateException(
+                "The offline model catalog could not be read. Please try again later.",
+                it,
+            )
+        }
+        if (modelManifest.model.chunks.isEmpty()) {
+            throw IllegalStateException(
+                "The offline model catalog is missing downloadable parts. Please try again later.",
+            )
+        }
+        modelManifest
+    }
+
+    private suspend fun fetchAndParseAppManifest(
+        manifestUrl: String,
+    ): ReleaseManifest {
+        val text = GithubReleaseClient.downloadText(manifestUrl)
+        val parsed = ReleaseManifest.parse(text)
+        if (parsed.app == null) {
+            throw IllegalStateException(
+                "The Sarathi release manifest is missing app details. Try again later.",
+            )
+        }
+        ManifestCache.save(context, text)
+        return parsed
+    }
+
+    /**
+     * Returns true when the manifest lists chunk assets that can be assembled into the model file.
+     */
+    fun canDownloadChunks(manifest: ReleaseManifest): Boolean = manifest.model.chunks.isNotEmpty()
+
+    /**
+     * Verifies the on-disk LiteRT model (size and optional SHA against [manifest]) and refreshes
+     * [InstalledModelInfo] metadata. Does not download release chunks.
+     */
+    suspend fun verifyInstalledModel(
+        manifest: ReleaseManifest,
+        onProgress: (String) -> Unit,
+    ): InstalledModelInfo = withContext(Dispatchers.IO) {
+        onProgress("Locating model file")
+        val path = ModelManager.resolveLiteRtLmPath(context, customPath = "")
+            ?: error("No LiteRT-LM model file was found in app-private storage.")
+        val file = File(path)
+        onProgress("Verifying model (SHA may take a while)")
+        val version = manifest.model.version.ifBlank { "unknown" }
+        InstalledModelInfo.verifyOrReconstructMetadata(
+            context = context,
+            modelFile = file,
+            expectedSize = manifest.model.sizeBytes,
+            expectedSha = manifest.model.sha256,
+            modelVersion = version,
+        ).getOrElse { throw it }
+    }
+
     suspend fun downloadAndInstall(
         manifest: ReleaseManifest,
+        action: ModelDownloadAction,
         onProgress: (downloaded: Long, total: Long, label: String) -> Unit,
     ) = withContext(Dispatchers.IO) {
+        when (action) {
+            ModelDownloadAction.KEEP_EXISTING_MODEL -> return@withContext
+            ModelDownloadAction.VERIFY_MODEL -> {
+                verifyInstalledModel(manifest) { label -> onProgress(0L, 1L, label) }
+                return@withContext
+            }
+            ModelDownloadAction.INSTALL_MODEL,
+            ModelDownloadAction.UPDATE_MODEL,
+            -> { /* continue */ }
+        }
+
         if (manifest.model.chunks.isEmpty()) {
-            throw IllegalStateException("The release manifest does not list any model chunks.")
+            throw IllegalStateException(
+                "This Sarathi release does not ship downloadable model parts. " +
+                    "Use a full or model release from GitHub, or copy the .litertlm into app-private storage manually.",
+            )
         }
         if (!hasEnoughSpace(manifest)) {
             val mb = manifest.model.sizeBytes / (1024 * 1024)
@@ -94,5 +210,13 @@ class ModelDownloadManager(
             tmpModel.delete()
         }
         dir.listFiles()?.forEach { it.delete() }
+
+        val version = manifest.model.version.ifBlank { "unknown" }
+        InstalledModelInfo.persistAfterVerification(
+            context = context,
+            modelFile = finalModel,
+            modelVersion = version,
+            sha256Hex = actual,
+        )
     }
 }

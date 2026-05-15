@@ -8,4 +8,6 @@ enum class GuidanceSurface {
     OnDeviceGemma,
     OnDeviceMediaPipe,
     OfflineGuidance,
+    /** LiteRT file may exist but must be replaced before Gemma can run (manifest policy). */
+    ModelUpdateRequired,
 }

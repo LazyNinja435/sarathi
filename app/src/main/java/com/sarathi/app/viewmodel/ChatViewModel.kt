@@ -12,6 +12,8 @@ import com.sarathi.app.llm.MockKrishnaChatEngine
 import com.sarathi.app.llm.ModelManager
 import com.sarathi.app.model.ChatMessage
 import com.sarathi.app.model.GuidanceSurface
+import com.sarathi.app.model.ModelEligibility
+import com.sarathi.app.update.ManifestCache
 import com.sarathi.app.model.GuidanceTone
 import com.sarathi.app.model.Sender
 import com.sarathi.app.rag.RagRepository
@@ -19,7 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -52,13 +54,16 @@ class ChatViewModel(
         UserPreferences(),
     )
 
-    val guidanceSurface: StateFlow<GuidanceSurface> = preferences
-        .map { guidanceSurfaceFor(it) }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            GuidanceSurface.OfflineGuidance,
-        )
+    val guidanceSurface: StateFlow<GuidanceSurface> = combine(
+        preferences,
+        ManifestCache.revision,
+    ) { p, _ ->
+        guidanceSurfaceFor(p)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        guidanceSurfaceFor(preferences.value),
+    )
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
@@ -72,7 +77,11 @@ class ChatViewModel(
     private fun guidanceSurfaceFor(p: UserPreferences): GuidanceSurface {
         if (p.useMockMode) return GuidanceSurface.Practice
         val app = getApplication<Application>()
-        if (ModelManager.resolveLiteRtLmPath(app, p.customModelPath) != null) {
+        val litePath = ModelManager.resolveLiteRtLmPath(app, p.customModelPath)
+        if (litePath != null && ModelEligibility.shouldBlockLiteRt(app, p.customModelPath)) {
+            return GuidanceSurface.ModelUpdateRequired
+        }
+        if (litePath != null) {
             return GuidanceSurface.OnDeviceGemma
         }
         if (ModelManager.resolveMediaPipeTaskPath(app, p.customModelPath) != null) {
@@ -152,6 +161,15 @@ class ChatViewModel(
             return mockEngine
         }
         val litePath = ModelManager.resolveLiteRtLmPath(getApplication(), p.customModelPath)
+        if (litePath != null && ModelEligibility.shouldBlockLiteRt(getApplication(), p.customModelPath)) {
+            mediaPipeEngine?.close()
+            mediaPipeEngine = null
+            mediaPipePath = null
+            liteRtLmEngine?.close()
+            liteRtLmEngine = null
+            liteRtLmPath = null
+            return mockEngine
+        }
         if (litePath != null) {
             mediaPipeEngine?.close()
             mediaPipeEngine = null

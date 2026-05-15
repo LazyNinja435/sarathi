@@ -32,9 +32,11 @@ Sarathi can check for newer APKs and can download the offline Gemma model **from
 
 1. When LiteRT-LM is not found, Settings offers **Download offline model** after explaining the state (“On-device wisdom is not installed yet.”).
 2. A confirmation dialog warns (~**2.6 GB**), recommends **Wi‑Fi**, and asks the user to keep the app open.
-3. The app downloads each manifest-listed chunk into `filesDir/model-downloads/`, verifies per-chunk SHA-256, concatenates to `filesDir/models/gemma-4-E2B-it.litertlm.tmp`, verifies the **full-model** SHA-256, then **atomically renames** to `filesDir/models/gemma-4-E2B-it.litertlm`.
-4. Temporary chunk files are deleted after success.
-5. `SettingsViewModel.refreshModelStatus()` runs so diagnostics show **Ready**.
+3. **Manifest resolution:** the app loads `sarathi-latest.json` (from the cached update check or by fetching `releases/latest/download/sarathi-latest.json`). If `model.chunks` is empty, it loads **`modelSource.externalManifestUrl`** (or the built-in default pointing at tag **`model-gemma-4-e2b`**) to obtain `model-latest.json`, then downloads chunks from **`release.tag`** on that catalog (typically the model-only release, not the app tag).
+4. The app downloads each manifest-listed chunk into `filesDir/model-downloads/`, verifies per-chunk SHA-256, concatenates to `filesDir/models/gemma-4-E2B-it.litertlm.tmp`, verifies the **full-model** SHA-256 and size (**2588147712** bytes for the current bundle), then **atomically renames** to `filesDir/models/gemma-4-E2B-it.litertlm`.
+5. `InstalledModelInfo` metadata is written to `files/models/installed-model.json`.
+6. Temporary chunk files are deleted after success.
+7. `SettingsViewModel.refreshModelStatus()` runs so diagnostics show **Ready**.
 
 Failures (network, storage, SHA mismatch) show **plain-language** errors; corrupt partial files are removed when verification fails.
 

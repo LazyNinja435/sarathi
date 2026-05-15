@@ -48,6 +48,11 @@ fun OfflineBadge(
             "No cloud required — install Gemma for fuller replies",
             Icons.Outlined.WifiOff,
         )
+        GuidanceSurface.ModelUpdateRequired -> Triple(
+            "On-device wisdom",
+            "Model update required — open Settings to download the new offline model",
+            Icons.Outlined.Psychology,
+        )
     }
     Row(
         modifier = modifier
@@ -68,7 +73,9 @@ fun OfflineBadge(
                     style = MaterialTheme.typography.labelLarge,
                     color = SoftGold,
                 )
-                if (surface == GuidanceSurface.OnDeviceGemma || surface == GuidanceSurface.OnDeviceMediaPipe) {
+                if (surface == GuidanceSurface.OnDeviceGemma || surface == GuidanceSurface.OnDeviceMediaPipe ||
+                    surface == GuidanceSurface.ModelUpdateRequired
+                ) {
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,
                         contentDescription = null,

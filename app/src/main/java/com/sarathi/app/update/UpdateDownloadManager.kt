@@ -12,24 +12,26 @@ class UpdateDownloadManager(private val context: Context) {
     }
 
     suspend fun downloadApk(manifest: ReleaseManifest) {
+        val app = manifest.app
+            ?: error("Release manifest is missing app metadata; cannot download APK.")
         val url = ReleaseManifest.assetDownloadUrl(
             manifest.release.repo,
             manifest.release.tag,
-            manifest.app.apkFileName,
+            app.apkFileName,
         )
         val dest = updateApkFile()
         if (dest.exists()) dest.delete()
         GithubReleaseClient.downloadToFile(url, dest)
         val actual = Sha256Util.sha256Hex(dest)
-        if (!Sha256Util.matchesExpected(actual, manifest.app.apkSha256)) {
+        if (!Sha256Util.matchesExpected(actual, app.apkSha256)) {
             dest.delete()
             throw IllegalStateException("APK checksum did not match the manifest. The download was discarded.")
         }
-        if (dest.length() != manifest.app.apkSizeBytes) {
+        if (dest.length() != app.apkSizeBytes) {
             dest.delete()
             throw IllegalStateException("APK size did not match the manifest. The download was discarded.")
         }
-        if (manifest.app.packageName != BuildConfig.APPLICATION_ID) {
+        if (app.packageName != BuildConfig.APPLICATION_ID) {
             dest.delete()
             throw IllegalStateException("Manifest package name does not match this app.")
         }

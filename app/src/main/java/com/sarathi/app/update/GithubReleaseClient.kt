@@ -14,6 +14,10 @@ object GithubReleaseClient {
     const val DEFAULT_LATEST_MANIFEST_URL =
         "https://github.com/LazyNinja435/sarathi/releases/latest/download/sarathi-latest.json"
 
+    /** Stable model-only manifest (separate GitHub release tag, e.g. `model-gemma-4-e2b`). */
+    const val DEFAULT_EXTERNAL_MODEL_MANIFEST_URL =
+        "https://github.com/LazyNinja435/sarathi/releases/download/model-gemma-4-e2b/model-latest.json"
+
     suspend fun downloadText(url: String): String = withContext(Dispatchers.IO) {
         requireHttps(url)
         val conn = openConnection(url, 120_000)
