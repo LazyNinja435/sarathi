@@ -2,6 +2,7 @@ package com.sarathi.app.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,7 +21,7 @@ fun KrishnaHeader(
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = "Śrī Krishna",
+            text = "Sri Krishna",
             style = MaterialTheme.typography.headlineLarge,
             color = SacredGold,
             textAlign = TextAlign.Center,
@@ -34,7 +35,11 @@ fun KrishnaHeader(
         )
         if (showEmblem) {
             Spacer(Modifier.height(12.dp))
-            PeacockFeatherEmblem()
+            SplashCenterLogo(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(104.dp),
+            )
         }
     }
 }

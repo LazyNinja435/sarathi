@@ -1,7 +1,9 @@
 package com.sarathi.app.llm
 
 import com.sarathi.app.model.ChatMessage
+import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceTone
+import com.sarathi.app.model.UserMemory
 import com.sarathi.app.rag.RagSearchResult
 
 /**
@@ -15,6 +17,8 @@ class MockKrishnaChatEngine : ChatEngine {
         userName: String,
         tone: GuidanceTone,
         retrievedContext: List<RagSearchResult>,
+        sessionMemory: ChatSessionMemory,
+        userMemory: UserMemory,
     ): String {
         val m = userMessage.lowercase()
         val name = userName.ifBlank { "dear one" }

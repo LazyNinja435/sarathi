@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -32,13 +33,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sarathi.app.model.Emotion
 import com.sarathi.app.ui.components.ChoiceChipCard
 import com.sarathi.app.ui.components.OfflineBadge
-import com.sarathi.app.ui.components.PeacockFeatherEmblem
 import com.sarathi.app.ui.components.SacredBackground
 import com.sarathi.app.ui.components.SacredButton
 import com.sarathi.app.ui.components.SacredButtonLabel
 import com.sarathi.app.ui.components.SacredButtonStyle
 import com.sarathi.app.ui.components.SacredCard
 import com.sarathi.app.ui.components.SacredCardVariant
+import com.sarathi.app.ui.components.SplashCenterLogo
 import com.sarathi.app.ui.theme.Ink
 import com.sarathi.app.ui.theme.SacredGold
 import com.sarathi.app.ui.theme.SoftGold
@@ -72,6 +73,7 @@ fun FeelScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(16.dp),
         ) {
             Row(
@@ -85,7 +87,11 @@ fun FeelScreen(
                 OfflineBadge()
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                PeacockFeatherEmblem()
+                SplashCenterLogo(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(112.dp),
+                )
                 Spacer(Modifier.height(8.dp))
                 Text("When I feel…", style = MaterialTheme.typography.headlineMedium, color = SoftGold)
                 Text("Choose what rests upon your heart", style = MaterialTheme.typography.titleMedium, color = SacredGold)

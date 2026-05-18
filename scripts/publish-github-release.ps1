@@ -130,9 +130,23 @@ function Invoke-Gh {
 
 function Test-GhReleaseExists([string] $ReleaseTag) {
 
-    & $ghExe release view $ReleaseTag --repo $Repo 2>$null
+    # gh prints "release not found" to stderr; with $ErrorActionPreference = Stop that becomes terminating.
 
-    return ($LASTEXITCODE -eq 0)
+    $prev = $ErrorActionPreference
+
+    $ErrorActionPreference = "SilentlyContinue"
+
+    try {
+
+        $null = & $ghExe release view $ReleaseTag --repo $Repo 2>&1
+
+        return ($LASTEXITCODE -eq 0)
+
+    } finally {
+
+        $ErrorActionPreference = $prev
+
+    }
 
 }
 

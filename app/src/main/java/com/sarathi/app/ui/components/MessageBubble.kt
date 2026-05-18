@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,11 +42,10 @@ fun MessageBubble(
             verticalAlignment = Alignment.Top,
         ) {
             if (!isUser) {
-                Icon(
-                    imageVector = Icons.Default.Spa,
-                    contentDescription = null,
-                    tint = SacredGold,
-                    modifier = Modifier.padding(top = 8.dp, end = 8.dp),
+                SplashCenterLogo(
+                    modifier = Modifier
+                        .padding(top = 4.dp, end = 8.dp)
+                        .size(38.dp),
                 )
             }
             Column(

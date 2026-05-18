@@ -10,7 +10,9 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import com.google.mediapipe.tasks.genai.llminference.ProgressListener
 import com.sarathi.app.model.ChatMessage
+import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceTone
+import com.sarathi.app.model.UserMemory
 import com.sarathi.app.rag.RagSearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -34,7 +36,7 @@ import kotlin.coroutines.resumeWithException
 class MediaPipeGemmaChatEngine(
     private val appContext: Context,
     private val modelAbsolutePath: String,
-    private val fallback: MockKrishnaChatEngine,
+    private val fallback: ChatEngine,
 ) : ChatEngine {
 
     private val mutex = Mutex()
@@ -46,6 +48,8 @@ class MediaPipeGemmaChatEngine(
         userName: String,
         tone: GuidanceTone,
         retrievedContext: List<RagSearchResult>,
+        sessionMemory: ChatSessionMemory,
+        userMemory: UserMemory,
     ): String = withContext(Dispatchers.IO) {
         try {
             Log.i(TAG, "generateReply start model=${modelAbsolutePath.substringAfterLast('/')}")
@@ -55,6 +59,8 @@ class MediaPipeGemmaChatEngine(
                 history = history,
                 userMessage = userMessage,
                 retrievedContext = retrievedContext,
+                sessionMemory = sessionMemory,
+                userMemory = userMemory,
             )
             mutex.withLock {
                 if (llmInference == null) {
@@ -86,9 +92,9 @@ class MediaPipeGemmaChatEngine(
                 }
             }
         } catch (t: Throwable) {
-            Log.w(TAG, "MediaPipe inference failed, using mock: ${t.message}", t)
+            Log.w(TAG, "MediaPipe inference failed: ${t.message}", t)
             LlmLastErrorStore.set(t.message ?: t::class.java.simpleName)
-            fallback.generateReply(userMessage, history, userName, tone, retrievedContext)
+            fallback.generateReply(userMessage, history, userName, tone, retrievedContext, sessionMemory, userMemory)
         }
     }
 

@@ -67,7 +67,7 @@ class ModelDownloadManager(
         val externalUrl = appManifest.resolvedExternalModelManifestUrl()
             ?: throw IllegalStateException(
                 "This Sarathi release does not list an offline model download. " +
-                    "Try again after the team publishes a model release, or use Practice mode in Settings.",
+                    "Try again after the team publishes a model release.",
             )
 
         val externalText = try {
@@ -75,7 +75,7 @@ class ModelDownloadManager(
         } catch (e: Exception) {
             throw IllegalStateException(
                 "Could not load the offline model catalog. Check your network connection and try again. " +
-                    "(If you are offline, use Practice mode.)",
+                    "Vaikuntha is unreachable right now.",
                 e,
             )
         }

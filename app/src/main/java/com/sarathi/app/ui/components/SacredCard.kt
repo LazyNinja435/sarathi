@@ -25,7 +25,7 @@ fun SacredCard(
     variant: SacredCardVariant = SacredCardVariant.Parchment,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
     val (container, border) = when (variant) {
         SacredCardVariant.Parchment -> Parchment to SacredGold
         SacredCardVariant.Indigo -> IndigoBubble.copy(alpha = 0.92f) to SacredGold

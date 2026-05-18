@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.sarathi.app.model.GuidanceTone
 import com.sarathi.app.ui.components.ChoiceChipCard
 import com.sarathi.app.ui.components.KrishnaHeader
-import com.sarathi.app.ui.components.OfflineBadge
 import com.sarathi.app.ui.components.SacredBackground
 import com.sarathi.app.ui.components.SacredButton
 import com.sarathi.app.ui.components.SacredButtonLabel
@@ -49,11 +50,11 @@ fun ToneScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            RowTopBar()
             KrishnaHeader()
             Text(
                 text = "How shall I guide you, dear one?",
@@ -105,20 +106,14 @@ fun ToneScreen(
                 )
             }
             Spacer(Modifier.height(8.dp))
-            SacredButton(onClick = { onContinue(selected) }) {
+            SacredButton(
+                onClick = { onContinue(selected) },
+                modifier = Modifier.width(280.dp),
+                fillMaxWidth = false,
+            ) {
                 SacredButtonLabel("Continue")
             }
         }
-    }
-}
-
-@Composable
-private fun RowTopBar() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-    ) {
-        OfflineBadge()
     }
 }
 

@@ -18,12 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sarathi.app.ui.components.PeacockEmblemStyle
-import com.sarathi.app.ui.components.PeacockFeatherEmblem
 import com.sarathi.app.ui.components.SacredBackground
 import com.sarathi.app.ui.components.SplashBeginButtonWithFiligree
-import com.sarathi.app.ui.components.SplashCornerFeatherParticleStreams
-import com.sarathi.app.ui.components.SplashFooterLotus
+import com.sarathi.app.ui.components.SplashCenterLogo
 import com.sarathi.app.ui.components.SplashLotusTitleRow
 import com.sarathi.app.ui.components.SplashLogoParticleStream
 import com.sarathi.app.ui.components.SplashOrnamentalDivider
@@ -38,12 +35,15 @@ fun SplashScreen(
     SacredBackground(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
             SplashScreenAtmosphere(Modifier.fillMaxSize())
-            SplashLogoParticleStream(Modifier.fillMaxSize())
-            SplashCornerFeatherParticleStreams(Modifier.fillMaxSize())
+            SplashLogoParticleStream(
+                modifier = Modifier.fillMaxSize(),
+                sourceXFraction = 0.43f,
+                sourceYFraction = 0.30f,
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp, vertical = 30.dp),
+                    .padding(horizontal = 28.dp, vertical = 26.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -54,62 +54,64 @@ fun SplashScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top,
                 ) {
+                    Spacer(Modifier.height(18.dp))
                     SplashLotusTitleRow()
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(10.dp))
                     Text(
                         text = "Sarathi",
                         style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 28.sp,
-                            letterSpacing = 0.5.sp,
+                            fontSize = 46.sp,
+                            letterSpacing = 0.sp,
                             fontWeight = FontWeight.Medium,
                         ),
                         color = SacredGold,
                         textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(40.dp))
+                    Spacer(Modifier.height(58.dp))
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(292.dp),
+                            .height(178.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        PeacockFeatherEmblem(
-                            size = 286.dp,
-                            style = PeacockEmblemStyle.Hero,
-                        )
+                        SplashCenterLogo(Modifier.fillMaxSize())
                     }
-                    Spacer(Modifier.height(18.dp))
+                    Spacer(Modifier.height(42.dp))
                     Text(
                         text = "When the heart grows quiet,\nthe charioteer speaks.",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 30.sp,
-                            lineHeight = 40.sp,
+                            fontSize = 22.sp,
+                            lineHeight = 30.sp,
                             fontWeight = FontWeight.Normal,
                         ),
                         color = SoftGold,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.widthIn(max = 420.dp),
+                        modifier = Modifier.widthIn(max = 620.dp),
                     )
-                    Spacer(Modifier.height(26.dp))
-                    SplashOrnamentalDivider()
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(22.dp))
+                    SplashOrnamentalDivider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                    )
+                    Spacer(Modifier.height(18.dp))
                     Text(
                         text = "Welcome, dear one.",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 22.sp,
-                            letterSpacing = 0.25.sp,
+                            letterSpacing = 0.sp,
                         ),
-                        color = SoftGold.copy(alpha = 0.94f),
+                        color = SoftGold.copy(alpha = 0.72f),
                         textAlign = TextAlign.Center,
                     )
                 }
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 42.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     SplashBeginButtonWithFiligree(onClick = onBegin)
-                    Spacer(Modifier.height(10.dp))
-                    SplashFooterLotus()
                 }
             }
         }

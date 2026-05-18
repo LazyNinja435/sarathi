@@ -51,6 +51,9 @@ class SettingsViewModel(
     val ragReady: StateFlow<Boolean> = _ragReady.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            prefs.refreshGoogleAiStudioApiKeyConfigured()
+        }
         refreshModelStatus()
     }
 
@@ -73,6 +76,22 @@ class SettingsViewModel(
 
     fun setUseMockMode(value: Boolean) {
         viewModelScope.launch { prefs.setUseMockMode(value) }
+    }
+
+    fun setGoogleAiStudioEnabled(value: Boolean) {
+        viewModelScope.launch { prefs.setGoogleAiStudioEnabled(value) }
+    }
+
+    fun saveGoogleAiStudioApiKey(apiKey: String) {
+        viewModelScope.launch { prefs.saveGoogleAiStudioApiKey(apiKey) }
+    }
+
+    fun clearGoogleAiStudioApiKey() {
+        viewModelScope.launch { prefs.clearGoogleAiStudioApiKey() }
+    }
+
+    fun clearUserMemory() {
+        viewModelScope.launch { prefs.clearUserMemory() }
     }
 
     fun setCustomModelPath(path: String) {

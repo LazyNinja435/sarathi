@@ -33,7 +33,7 @@ fun SacredTextField(
     imeAction: ImeAction = ImeAction.Default,
     onImeAction: () -> Unit = {},
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(8.dp)
     TextField(
         value = value,
         onValueChange = onValueChange,

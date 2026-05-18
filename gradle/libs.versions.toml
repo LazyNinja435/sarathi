@@ -12,6 +12,7 @@ litertlmAndroid = "0.11.0"
 coroutines = "1.9.0"
 guava = "33.3.1-android"
 material = "1.12.0"
+securityCrypto = "1.1.0-alpha06"
 junit = "4.13.2"
 androidxTestExtJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
@@ -36,6 +37,7 @@ litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-and
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }

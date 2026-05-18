@@ -153,7 +153,6 @@ object ModelManager {
             else -> LlmModelFileKind.Missing
         }
         val active = when {
-            useMockMode -> LlmRuntimeKind.Mock
             lite != null -> LlmRuntimeKind.LiteRtLm
             task != null -> LlmRuntimeKind.MediaPipe
             else -> LlmRuntimeKind.Mock

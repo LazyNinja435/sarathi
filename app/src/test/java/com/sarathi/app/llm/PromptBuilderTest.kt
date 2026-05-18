@@ -1,13 +1,43 @@
 package com.sarathi.app.llm
 
 import com.sarathi.app.model.ChatMessage
+import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceTone
 import com.sarathi.app.model.Sender
+import com.sarathi.app.model.UserMemory
 import com.sarathi.app.rag.RagSearchResult
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PromptBuilderTest {
+
+    @Test
+    fun buildFullPrompt_containsSimpleLanguageInstructions() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "Test",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "I am sad",
+        )
+
+        assertTrue(prompt.contains("Use simple, calm English"))
+        assertTrue(prompt.contains("Use short sentences"))
+        assertTrue(prompt.contains("Speak like a gentle guide, not a scholar"))
+    }
+
+    @Test
+    fun buildFullPrompt_containsSacredQuoteExplanationRule() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "Test",
+            tone = GuidanceTone.Scriptural,
+            history = emptyList(),
+            userMessage = "What does the Gita say?",
+        )
+
+        assertTrue(prompt.contains("It means:"))
+        assertTrue(prompt.contains("For you right now:"))
+        assertTrue(prompt.contains("Never leave Sanskrit"))
+    }
 
     @Test
     fun buildFullPrompt_includesRetrievedRagContext() {
@@ -52,5 +82,38 @@ class PromptBuilderTest {
         )
         assertTrue(prompt.contains("Recent conversation"))
         assertTrue(prompt.contains("Earlier question"))
+    }
+
+    @Test
+    fun buildFullPrompt_includesShortTermMemoryWhenProvided() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "A",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "Help",
+            sessionMemory = ChatSessionMemory(
+                currentEmotion = "anxious about work pressure",
+                preferredGuidanceStyle = "short and simple",
+            ),
+        )
+
+        assertTrue(prompt.contains("Current conversation memory"))
+        assertTrue(prompt.contains("anxious about work pressure"))
+        assertTrue(prompt.contains("Avoid long explanations"))
+    }
+
+    @Test
+    fun buildFullPrompt_includesLongTermMemoryWhenProvided() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "A",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "Help",
+            userMemory = UserMemory(savedUserNotes = listOf("I prefer short answers.")),
+        )
+
+        assertTrue(prompt.contains("Saved user guidance preferences"))
+        assertTrue(prompt.contains("Preferred language level: simple"))
+        assertTrue(prompt.contains("I prefer short answers."))
     }
 }

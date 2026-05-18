@@ -6,15 +6,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -36,8 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -47,11 +46,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sarathi.app.R
-import com.sarathi.app.ui.components.PeacockEmblemStyle
-import com.sarathi.app.ui.components.PeacockFeatherEmblem
 import com.sarathi.app.ui.components.SacredBackground
-import com.sarathi.app.ui.components.SplashCornerFeatherParticleStreams
-import com.sarathi.app.ui.components.SplashLogoParticleStream
+import com.sarathi.app.ui.components.SacredButton
+import com.sarathi.app.ui.components.SplashCenterLogo
 import com.sarathi.app.ui.components.SplashOrnamentalDivider
 import com.sarathi.app.ui.components.SplashScreenAtmosphere
 import com.sarathi.app.ui.theme.IndigoBubble
@@ -79,26 +76,17 @@ fun NameScreen(
     SacredBackground(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
             SplashScreenAtmosphere(Modifier.fillMaxSize())
-            SplashLogoParticleStream(
-                modifier = Modifier.fillMaxSize(),
-                seed = 20260516,
-                particleCount = 76,
-            )
-            SplashCornerFeatherParticleStreams(
-                modifier = Modifier.fillMaxSize(),
-                seed = 20260517,
-                particleCount = 42,
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .imePadding()
+                    .statusBarsPadding()
                     .padding(horizontal = 28.dp, vertical = 34.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.height(22.dp))
                 Text(
-                    text = "Śrī Krishna",
+                    text = "Sri Krishna",
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 42.sp,
                         lineHeight = 47.sp,
@@ -117,9 +105,10 @@ fun NameScreen(
                     textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(28.dp))
-                PeacockFeatherEmblem(
-                    size = 130.dp,
-                    style = PeacockEmblemStyle.Hero,
+                SplashCenterLogo(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
                 )
                 Spacer(Modifier.height(28.dp))
                 Text(
@@ -190,7 +179,7 @@ private fun NameInputField(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(22.dp)
-    Row(
+    Box(
         modifier = modifier
             .height(64.dp)
             .shadow(10.dp, shape, ambientColor = SacredGold.copy(alpha = 0.12f), spotColor = SacredGold.copy(alpha = 0.15f))
@@ -199,38 +188,52 @@ private fun NameInputField(
                 width = 1.2.dp,
                 color = if (isError) SacredGold.copy(alpha = 0.95f) else SacredGold.copy(alpha = 0.74f),
                 shape = shape,
-            )
-            .padding(horizontal = 15.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        LotusMedallion(
-            modifier = Modifier.size(42.dp),
-            dark = true,
-            alpha = 0.86f,
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(
+                color = SoftGold,
+                fontSize = 19.sp,
+                lineHeight = 25.sp,
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp),
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (value.isBlank()) Arrangement.Center else Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LotusMedallion(
+                        modifier = Modifier.size(42.dp),
+                        dark = true,
+                        alpha = 0.86f,
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    if (value.isBlank()) {
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            Text(
+                                text = "Your name",
+                                color = SoftGold.copy(alpha = 0.46f),
+                                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 19.sp),
+                            )
+                            innerTextField()
+                        }
+                    } else {
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            innerTextField()
+                        }
+                    }
+                }
+            },
         )
-        Spacer(Modifier.width(14.dp))
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (value.isBlank()) {
-                Text(
-                    text = "Your name",
-                    color = SoftGold.copy(alpha = 0.46f),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontSize = 19.sp),
-                )
-            }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = TextStyle(
-                    color = SoftGold,
-                    fontSize = 19.sp,
-                    lineHeight = 25.sp,
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onDone() }),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
     }
 }
 
@@ -239,49 +242,33 @@ private fun OfferNameButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(24.dp)
-    androidx.compose.material3.Button(
+    SacredButton(
         onClick = onClick,
-        modifier = modifier
-            .heightIn(min = 66.dp)
-            .shadow(12.dp, shape, ambientColor = SacredGold.copy(alpha = 0.22f), spotColor = SacredGold.copy(alpha = 0.26f)),
-        shape = shape,
-        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            contentColor = Ink,
-        ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+        modifier = modifier,
+        minHeight = 66.dp,
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 10.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 66.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(Parchment, SoftGold),
-                    ),
-                    shape = shape,
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LotusMedallion(
+                    modifier = Modifier.size(42.dp),
+                    dark = true,
+                    alpha = 1f,
                 )
-                .border(1.4.dp, SacredGold, shape)
-                .padding(horizontal = 22.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            LotusMedallion(
-                modifier = Modifier.size(46.dp),
-                dark = true,
-                alpha = 1f,
-            )
-            Spacer(Modifier.width(14.dp))
-            Text(
-                text = "Offer my name",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
-                color = Ink,
-                textAlign = TextAlign.Center,
-            )
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = "Offer my name",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    color = Ink,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

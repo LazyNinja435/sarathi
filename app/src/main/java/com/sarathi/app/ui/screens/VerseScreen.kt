@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,13 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sarathi.app.model.Verse
 import com.sarathi.app.ui.components.OfflineBadge
-import com.sarathi.app.ui.components.PeacockFeatherEmblem
 import com.sarathi.app.ui.components.SacredBackground
 import com.sarathi.app.ui.components.SacredButton
 import com.sarathi.app.ui.components.SacredButtonLabel
 import com.sarathi.app.ui.components.SacredButtonStyle
 import com.sarathi.app.ui.components.SacredCard
 import com.sarathi.app.ui.components.SacredCardVariant
+import com.sarathi.app.ui.components.SplashCenterLogo
 import com.sarathi.app.ui.theme.Ink
 import com.sarathi.app.ui.theme.SacredGold
 import com.sarathi.app.ui.theme.SoftGold
@@ -54,6 +55,7 @@ fun VerseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(16.dp),
         ) {
             Row(
@@ -70,7 +72,11 @@ fun VerseScreen(
                 Text("Verse of the Day", style = MaterialTheme.typography.headlineMedium, color = SacredGold)
                 Text("Today's whisper", style = MaterialTheme.typography.titleMedium, color = SoftGold.copy(alpha = 0.9f))
                 Spacer(Modifier.height(8.dp))
-                PeacockFeatherEmblem()
+                SplashCenterLogo(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(112.dp),
+                )
             }
             Spacer(Modifier.height(16.dp))
             val v = verse

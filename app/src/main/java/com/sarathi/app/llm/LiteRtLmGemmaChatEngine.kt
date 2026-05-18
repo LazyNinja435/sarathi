@@ -8,7 +8,9 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.sarathi.app.model.ChatMessage
+import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceTone
+import com.sarathi.app.model.UserMemory
 import com.sarathi.app.rag.RagSearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -20,12 +22,12 @@ import kotlinx.coroutines.withContext
  * LiteRT-LM adapter for Gemma-family **`.litertlm`** checkpoints.
  *
  * Does **not** use MediaPipe [com.google.mediapipe.tasks.genai.llminference.LlmInference].
- * Loads lazily on first generation, serializes work with a [Mutex], and falls back to [fallback] on failure.
+ * Loads lazily on first generation, serializes work with a [Mutex], and delegates failures to [fallback].
  */
 class LiteRtLmGemmaChatEngine(
     private val appContext: Context,
     private val modelAbsolutePath: String,
-    private val fallback: MockKrishnaChatEngine,
+    private val fallback: ChatEngine,
 ) : ChatEngine {
 
     private val mutex = Mutex()
@@ -37,6 +39,8 @@ class LiteRtLmGemmaChatEngine(
         userName: String,
         tone: GuidanceTone,
         retrievedContext: List<RagSearchResult>,
+        sessionMemory: ChatSessionMemory,
+        userMemory: UserMemory,
     ): String = withContext(Dispatchers.IO) {
         try {
             Log.i(TAG, "generateReply start model=${modelAbsolutePath.substringAfterLast('/')}")
@@ -46,6 +50,8 @@ class LiteRtLmGemmaChatEngine(
                 history = history,
                 userMessage = userMessage,
                 retrievedContext = retrievedContext,
+                sessionMemory = sessionMemory,
+                userMemory = userMemory,
             )
             mutex.withLock {
                 if (engine == null) {
@@ -85,9 +91,9 @@ class LiteRtLmGemmaChatEngine(
                 clipped
             }
         } catch (t: Throwable) {
-            Log.w(TAG, "LiteRT-LM inference failed, using mock: ${t.message}", t)
+            Log.w(TAG, "LiteRT-LM inference failed: ${t.message}", t)
             LlmLastErrorStore.set(t.message ?: t::class.java.simpleName)
-            fallback.generateReply(userMessage, history, userName, tone, retrievedContext)
+            fallback.generateReply(userMessage, history, userName, tone, retrievedContext, sessionMemory, userMemory)
         }
     }
 

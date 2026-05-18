@@ -3,23 +3,28 @@ package com.sarathi.app.ui.screens
 import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,11 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sarathi.app.BuildConfig
 import com.sarathi.app.SarathiApp
+import com.sarathi.app.llm.GoogleAiStudioConfig
 import com.sarathi.app.llm.ModelManager
 import com.sarathi.app.model.OnDeviceWisdomStatus
 import com.sarathi.app.modeldownload.ModelDownloadAction
@@ -54,6 +62,7 @@ import com.sarathi.app.ui.components.SacredButtonLabel
 import com.sarathi.app.ui.components.SacredButtonStyle
 import com.sarathi.app.ui.components.SacredCard
 import com.sarathi.app.ui.components.SacredCardVariant
+import com.sarathi.app.ui.theme.IndigoBubble
 import com.sarathi.app.ui.theme.Ink
 import com.sarathi.app.ui.theme.SacredGold
 import com.sarathi.app.ui.theme.SoftGold
@@ -72,13 +81,15 @@ fun SettingsScreen(
     val status by settingsViewModel.modelStatus.collectAsStateWithLifecycle()
     val diag by settingsViewModel.llmDiagnostics.collectAsStateWithLifecycle()
     val ragReady by settingsViewModel.ragReady.collectAsStateWithLifecycle()
-    LaunchedEffect(prefs.useMockMode, prefs.customModelPath) {
+    LaunchedEffect(prefs.customModelPath) {
         settingsViewModel.refreshModelStatus()
     }
     var showHelp by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var devOpen by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var googleAiStudioApiKeyDraft by remember { mutableStateOf("") }
+    var googleAiStudioKeyVisible by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val app = ctx.applicationContext as SarathiApp
     val activity = ctx as? Activity
@@ -110,6 +121,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -139,14 +151,131 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 settingRow("Offline mode", "Enabled — your conversations stay on this device.")
                 Spacer(Modifier.height(8.dp))
-                settingRow("Guidance engine", friendlyEngineLabel(prefs.useMockMode, diag.activeRuntime))
+                settingRow(
+                    "Guidance engine",
+                    friendlyEngineLabel(
+                        googleAiStudio = prefs.googleAiStudioEnabled && prefs.googleAiStudioApiKeyConfigured,
+                        active = diag.activeRuntime,
+                    ),
+                )
                 Spacer(Modifier.height(8.dp))
                 settingRow("Model status", friendlyModelStatus(status))
                 Spacer(Modifier.height(8.dp))
                 settingRow("Tone of voice", prefs.selectedTone.label)
+                Spacer(Modifier.height(8.dp))
+                settingRow("Saved guidance memory", "${prefs.userMemory.savedUserNotes.size} saved")
                 Spacer(Modifier.height(12.dp))
-                SacredButton(onClick = { settingsViewModel.refreshModelStatus() }) {
-                    SacredButtonLabel("Check model")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SacredButton(
+                        onClick = { settingsViewModel.refreshModelStatus() },
+                        fillMaxWidth = false,
+                    ) {
+                        SacredButtonLabel("Check model")
+                    }
+                    SacredButton(
+                        onClick = { settingsViewModel.clearUserMemory() },
+                        enabled = prefs.userMemory.savedUserNotes.isNotEmpty(),
+                        style = SacredButtonStyle.GoldOutline,
+                        fillMaxWidth = false,
+                    ) {
+                        SacredButtonLabel("Clear memory", inkOnParchment = false)
+                    }
+                }
+            }
+
+            SacredCard(variant = SacredCardVariant.Indigo) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(GoogleAiStudioConfig.PROVIDER_NAME, style = MaterialTheme.typography.titleMedium, color = SacredGold)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Uses your own Google AI Studio API key. Sarathi defaults to ${GoogleAiStudioConfig.MODEL_NAME} when enabled.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SoftGold.copy(alpha = 0.86f),
+                        )
+                    }
+                    Switch(
+                        checked = prefs.googleAiStudioEnabled,
+                        onCheckedChange = { settingsViewModel.setGoogleAiStudioEnabled(it) },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                settingRow("API key", if (prefs.googleAiStudioApiKeyConfigured) "Configured" else "Not configured")
+                if (prefs.googleAiStudioEnabled) {
+                    Spacer(Modifier.height(10.dp))
+                    TextField(
+                        value = googleAiStudioApiKeyDraft,
+                        onValueChange = { googleAiStudioApiKeyDraft = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                if (prefs.googleAiStudioApiKeyConfigured) {
+                                    "Paste a new key to replace the saved key"
+                                } else {
+                                    "Paste Google AI Studio API key"
+                                },
+                                color = SoftGold.copy(alpha = 0.55f),
+                            )
+                        },
+                        singleLine = true,
+                        visualTransformation = if (googleAiStudioKeyVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { googleAiStudioKeyVisible = !googleAiStudioKeyVisible }) {
+                                Icon(
+                                    imageVector = if (googleAiStudioKeyVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = if (googleAiStudioKeyVisible) "Hide API key" else "Show API key",
+                                    tint = SacredGold,
+                                )
+                            }
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
+                            unfocusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
+                            focusedTextColor = SoftGold,
+                            unfocusedTextColor = SoftGold,
+                            cursorColor = SacredGold,
+                            focusedIndicatorColor = SacredGold,
+                            unfocusedIndicatorColor = SacredGold.copy(alpha = 0.45f),
+                        ),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SacredButton(
+                            onClick = {
+                                settingsViewModel.saveGoogleAiStudioApiKey(googleAiStudioApiKeyDraft)
+                                googleAiStudioApiKeyDraft = ""
+                                googleAiStudioKeyVisible = false
+                            },
+                            enabled = googleAiStudioApiKeyDraft.isNotBlank(),
+                            fillMaxWidth = false,
+                            minHeight = 42.dp,
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            SacredButtonLabel("Save")
+                        }
+                        SacredButton(
+                            onClick = {
+                                settingsViewModel.clearGoogleAiStudioApiKey()
+                                googleAiStudioApiKeyDraft = ""
+                                googleAiStudioKeyVisible = false
+                            },
+                            enabled = prefs.googleAiStudioApiKeyConfigured || googleAiStudioApiKeyDraft.isNotBlank(),
+                            style = SacredButtonStyle.GoldOutline,
+                            fillMaxWidth = false,
+                            minHeight = 42.dp,
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            SacredButtonLabel("Clear", inkOnParchment = false)
+                        }
+                    }
                 }
             }
 
@@ -334,7 +463,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            "This Sarathi version needs a newer offline model for on-device wisdom. Practice mode still works.",
+                            "This Sarathi version needs a newer offline model for on-device wisdom.",
                             color = SoftGold,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -408,25 +537,6 @@ fun SettingsScreen(
                     SacredButton(onClick = { settingsViewModel.refreshModelStatus() }) {
                         SacredButtonLabel("Refresh diagnostics", inkOnParchment = true)
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Practice mode", style = MaterialTheme.typography.bodyLarge, color = Ink)
-                            Text(
-                                "Uses warm scripted guidance without Gemma.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Ink.copy(alpha = 0.75f),
-                            )
-                        }
-                        Switch(
-                            checked = prefs.useMockMode,
-                            onCheckedChange = { settingsViewModel.setUseMockMode(it) },
-                        )
-                    }
                 }
                 SacredCard(variant = SacredCardVariant.Indigo) {
                     Text("Expected model paths", style = MaterialTheme.typography.titleSmall, color = SacredGold)
@@ -468,15 +578,20 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             confirmButton = {
-                TextButton(
+                AlertDialogActionButton(
+                    text = "Reset",
                     onClick = {
                         confirmReset = false
                         settingsViewModel.resetOnboarding(onResetOnboarding)
                     },
-                ) { Text("Reset", color = SacredGold) }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { confirmReset = false }) { Text("Cancel") }
+                AlertDialogActionButton(
+                    text = "Cancel",
+                    onClick = { confirmReset = false },
+                    outline = true,
+                )
             },
             title = { Text("Reset onboarding?") },
             text = { Text("You will return to the welcome path. Your model files are not removed.") },
@@ -487,7 +602,10 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showAbout = false },
             confirmButton = {
-                TextButton(onClick = { showAbout = false }) { Text("Close", color = SacredGold) }
+                AlertDialogActionButton(
+                    text = "Close",
+                    onClick = { showAbout = false },
+                )
             },
             title = { Text("About Sarathi") },
             text = {
@@ -504,15 +622,20 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showModelDownloadConfirm = false },
             confirmButton = {
-                TextButton(
+                AlertDialogActionButton(
+                    text = "Download",
                     onClick = {
                         showModelDownloadConfirm = false
                         modelVm.startDownload(action = ModelDownloadAction.INSTALL_MODEL)
                     },
-                ) { Text("Download", color = SacredGold) }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showModelDownloadConfirm = false }) { Text("Cancel") }
+                AlertDialogActionButton(
+                    text = "Cancel",
+                    onClick = { showModelDownloadConfirm = false },
+                    outline = true,
+                )
             },
             title = { Text("Download offline model?") },
             text = {
@@ -529,15 +652,20 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showModelVerifyConfirm = false },
             confirmButton = {
-                TextButton(
+                AlertDialogActionButton(
+                    text = "Verify",
                     onClick = {
                         showModelVerifyConfirm = false
                         modelVm.startDownload(action = ModelDownloadAction.VERIFY_MODEL)
                     },
-                ) { Text("Verify", color = SacredGold) }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showModelVerifyConfirm = false }) { Text("Cancel") }
+                AlertDialogActionButton(
+                    text = "Cancel",
+                    onClick = { showModelVerifyConfirm = false },
+                    outline = true,
+                )
             },
             title = { Text("Verify model?") },
             text = {
@@ -553,15 +681,20 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showModelUpdateConfirm = false },
             confirmButton = {
-                TextButton(
+                AlertDialogActionButton(
+                    text = "Download",
                     onClick = {
                         showModelUpdateConfirm = false
                         modelVm.startDownload(action = ModelDownloadAction.UPDATE_MODEL)
                     },
-                ) { Text("Download", color = SacredGold) }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showModelUpdateConfirm = false }) { Text("Cancel") }
+                AlertDialogActionButton(
+                    text = "Cancel",
+                    onClick = { showModelUpdateConfirm = false },
+                    outline = true,
+                )
             },
             title = { Text("Download model update?") },
             text = {
@@ -608,11 +741,11 @@ private fun formatBytes(bytes: Long): String {
     return String.format("%.1f %s", v, units[i])
 }
 
-private fun friendlyEngineLabel(mock: Boolean, active: LlmRuntimeKind): String = when {
-    mock -> "Practice mode"
+private fun friendlyEngineLabel(googleAiStudio: Boolean, active: LlmRuntimeKind): String = when {
+    googleAiStudio -> "Google AI Studio (${GoogleAiStudioConfig.MODEL_NAME})"
     active == LlmRuntimeKind.LiteRtLm -> "On-device Gemma"
     active == LlmRuntimeKind.MediaPipe -> "On-device Gemma (classic engine)"
-    else -> "Offline guidance (scripted replies)"
+    else -> "Vaikuntha unreachable"
 }
 
 private fun friendlyModelStatus(status: ModelStatus): String = when (status) {
@@ -623,7 +756,8 @@ private fun friendlyModelStatus(status: ModelStatus): String = when (status) {
 }
 
 private fun runtimeLabel(kind: LlmRuntimeKind): String = when (kind) {
-    LlmRuntimeKind.Mock -> "Mock / fallback"
+    LlmRuntimeKind.Mock -> "Unavailable"
+    LlmRuntimeKind.GoogleAiStudio -> "Google AI Studio"
     LlmRuntimeKind.LiteRtLm -> "LiteRT-LM"
     LlmRuntimeKind.MediaPipe -> "MediaPipe"
 }
@@ -632,4 +766,21 @@ private fun modelFileLabel(kind: LlmModelFileKind): String = when (kind) {
     LlmModelFileKind.Missing -> "Missing"
     LlmModelFileKind.LiteRtLm -> "LiteRT-LM .litertlm"
     LlmModelFileKind.MediaPipeTask -> "MediaPipe .task"
+}
+
+@Composable
+private fun AlertDialogActionButton(
+    text: String,
+    onClick: () -> Unit,
+    outline: Boolean = false,
+) {
+    SacredButton(
+        onClick = onClick,
+        style = if (outline) SacredButtonStyle.GoldOutline else SacredButtonStyle.GoldSolid,
+        fillMaxWidth = false,
+        minHeight = 40.dp,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        SacredButtonLabel(text, inkOnParchment = !outline)
+    }
 }

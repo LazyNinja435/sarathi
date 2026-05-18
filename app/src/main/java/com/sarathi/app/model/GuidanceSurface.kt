@@ -5,6 +5,7 @@ package com.sarathi.app.model
  */
 enum class GuidanceSurface {
     Practice,
+    GoogleAiStudio,
     OnDeviceGemma,
     OnDeviceMediaPipe,
     OfflineGuidance,

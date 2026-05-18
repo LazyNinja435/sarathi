@@ -42,6 +42,7 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 - **LiteRT-LM:** Validated on a **physical Pixel** device.
 - **Practice / mock mode:** Works end-to-end; always available as fallback.
 - **MediaPipe `.task`:** Code path exists; treat as **legacy** when LiteRT is available.
+- **Google AI Studio:** Optional, user-enabled online provider path exists in current code; keep it opt-in, store API keys securely, and preserve offline-first defaults.
 - **GitHub release / update infrastructure:** Being extended (manifests, APK, chunked model).
 - **Local workflow:** A Pixel-oriented bundle script exists for app + model install on device.
 
@@ -145,9 +146,10 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 ### Runtime selection (priority)
 
 1. **Practice mode ON** → `MockKrishnaChatEngine`.
-2. **Practice mode OFF** + compatible **`.litertlm`** → `LiteRtLmGemmaChatEngine`.
-3. **Practice mode OFF** + **`.task` only** → `MediaPipeGemmaChatEngine`.
-4. **No model**, **blocked / incompatible model**, or **runtime failure** → fall back gracefully to **practice mode**. **Do not crash.**
+2. **Google AI Studio enabled** + configured user API key → `GoogleAiStudioChatEngine` with offline/practice fallback.
+3. **Practice mode OFF** + compatible **`.litertlm`** → `LiteRtLmGemmaChatEngine`.
+4. **Practice mode OFF** + **`.task` only** → `MediaPipeGemmaChatEngine`.
+5. **No model**, **blocked / incompatible model**, or **runtime failure** → fall back gracefully to **practice mode**. **Do not crash.**
 
 **Preference:** When both LiteRT and MediaPipe models exist, **prefer LiteRT** over MediaPipe.
 

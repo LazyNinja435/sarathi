@@ -3,20 +3,26 @@ package com.sarathi.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sarathi.app.data.UserMemoryCommand
 import com.sarathi.app.data.UserPreferences
 import com.sarathi.app.data.UserPreferencesRepository
 import com.sarathi.app.llm.ChatEngine
+import com.sarathi.app.llm.ChatProvider
+import com.sarathi.app.llm.ChatProviderSelector
+import com.sarathi.app.llm.GoogleAiStudioChatEngine
 import com.sarathi.app.llm.LiteRtLmGemmaChatEngine
 import com.sarathi.app.llm.MediaPipeGemmaChatEngine
-import com.sarathi.app.llm.MockKrishnaChatEngine
 import com.sarathi.app.llm.ModelManager
 import com.sarathi.app.model.ChatMessage
+import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceSurface
 import com.sarathi.app.model.ModelEligibility
 import com.sarathi.app.update.ManifestCache
 import com.sarathi.app.model.GuidanceTone
 import com.sarathi.app.model.Sender
+import com.sarathi.app.model.UserMemory
 import com.sarathi.app.rag.RagRepository
+import com.sarathi.app.rag.RagSearchResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +38,17 @@ class ChatViewModel(
     private val rag: RagRepository,
 ) : AndroidViewModel(application) {
 
-    private val mockEngine = MockKrishnaChatEngine()
+    private val unreachableEngine = object : ChatEngine {
+        override suspend fun generateReply(
+            userMessage: String,
+            history: List<ChatMessage>,
+            userName: String,
+            tone: GuidanceTone,
+            retrievedContext: List<RagSearchResult>,
+            sessionMemory: ChatSessionMemory,
+            userMemory: UserMemory,
+        ): String = UNREACHABLE_MESSAGE
+    }
 
     init {
         viewModelScope.launch {
@@ -45,7 +61,6 @@ class ChatViewModel(
 
     private var mediaPipeEngine: MediaPipeGemmaChatEngine? = null
     private var mediaPipePath: String? = null
-
     private val sendMutex = Mutex()
 
     val preferences: StateFlow<UserPreferences> = prefs.preferences.stateIn(
@@ -68,6 +83,8 @@ class ChatViewModel(
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
+    private val _sessionMemory = MutableStateFlow(ChatSessionMemory())
+
     private val _input = MutableStateFlow("")
     val input: StateFlow<String> = _input.asStateFlow()
 
@@ -75,7 +92,9 @@ class ChatViewModel(
     val typing: StateFlow<Boolean> = _typing.asStateFlow()
 
     private fun guidanceSurfaceFor(p: UserPreferences): GuidanceSurface {
-        if (p.useMockMode) return GuidanceSurface.Practice
+        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
+            return GuidanceSurface.GoogleAiStudio
+        }
         val app = getApplication<Application>()
         val litePath = ModelManager.resolveLiteRtLmPath(app, p.customModelPath)
         if (litePath != null && ModelEligibility.shouldBlockLiteRt(app, p.customModelPath)) {
@@ -96,6 +115,12 @@ class ChatViewModel(
 
     fun ensureWelcomeMessage() {
         if (_messages.value.isNotEmpty()) return
+        if (!hasReachableGuidance(preferences.value)) {
+            _messages.value = listOf(
+                ChatMessage(sender = Sender.Assistant, text = UNREACHABLE_MESSAGE),
+            )
+            return
+        }
         val name = preferences.value.userName.ifBlank { "dear one" }
         val welcome = buildString {
             appendLine("My dear $name,")
@@ -121,17 +146,32 @@ class ChatViewModel(
             try {
                 _messages.value = _messages.value + ChatMessage(sender = Sender.User, text = trimmed)
                 val priorHistory = _messages.value.dropLast(1)
+                val updatedSessionMemory = ChatSessionMemory.updatedFrom(trimmed, _sessionMemory.value)
+                _sessionMemory.value = updatedSessionMemory
                 _input.value = ""
                 _typing.value = true
                 try {
+                    val explicitMemory = UserMemoryCommand.extractExplicitMemory(trimmed)
+                    if (explicitMemory != null) {
+                        prefs.rememberUserNote(explicitMemory)
+                        val name = preferences.value.userName.ifBlank { "dear one" }
+                        _messages.value = _messages.value + ChatMessage(
+                            sender = Sender.Assistant,
+                            text = "I will remember that, $name. I will keep it in mind and answer simply.",
+                        )
+                        return@launch
+                    }
                     val retrieved = rag.search(trimmed, limit = 3)
                     val engine = resolveEngine()
+                    val currentPreferences = preferences.value
                     val reply = engine.generateReply(
                         userMessage = trimmed,
                         history = priorHistory,
-                        userName = preferences.value.userName.ifBlank { "dear one" },
-                        tone = preferences.value.selectedTone,
+                        userName = currentPreferences.userName.ifBlank { "dear one" },
+                        tone = currentPreferences.selectedTone,
                         retrievedContext = retrieved,
+                        sessionMemory = updatedSessionMemory,
+                        userMemory = currentPreferences.userMemory,
                     )
                     _messages.value = _messages.value + ChatMessage(sender = Sender.Assistant, text = reply)
                 } finally {
@@ -151,15 +191,29 @@ class ChatViewModel(
 
     private suspend fun resolveEngine(): ChatEngine {
         val p = preferences.value
-        if (p.useMockMode) {
-            liteRtLmEngine?.close()
-            liteRtLmEngine = null
-            liteRtLmPath = null
-            mediaPipeEngine?.close()
-            mediaPipeEngine = null
-            mediaPipePath = null
-            return mockEngine
+        val offlineEngine = resolveOfflineEngine(p)
+        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
+            return GoogleAiStudioChatEngine(
+                apiKeyProvider = { prefs.getGoogleAiStudioApiKey() },
+                fallback = offlineEngine,
+            )
         }
+        return offlineEngine
+    }
+
+    private fun hasReachableGuidance(p: UserPreferences): Boolean {
+        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
+            return true
+        }
+        val app = getApplication<Application>()
+        val litePath = ModelManager.resolveLiteRtLmPath(app, p.customModelPath)
+        if (litePath != null && !ModelEligibility.shouldBlockLiteRt(app, p.customModelPath)) {
+            return true
+        }
+        return ModelManager.resolveMediaPipeTaskPath(app, p.customModelPath) != null
+    }
+
+    private suspend fun resolveOfflineEngine(p: UserPreferences): ChatEngine {
         val litePath = ModelManager.resolveLiteRtLmPath(getApplication(), p.customModelPath)
         if (litePath != null && ModelEligibility.shouldBlockLiteRt(getApplication(), p.customModelPath)) {
             mediaPipeEngine?.close()
@@ -168,7 +222,7 @@ class ChatViewModel(
             liteRtLmEngine?.close()
             liteRtLmEngine = null
             liteRtLmPath = null
-            return mockEngine
+            return unreachableEngine
         }
         if (litePath != null) {
             mediaPipeEngine?.close()
@@ -177,7 +231,7 @@ class ChatViewModel(
             if (liteRtLmPath != litePath || liteRtLmEngine == null) {
                 liteRtLmEngine?.close()
                 liteRtLmPath = litePath
-                liteRtLmEngine = LiteRtLmGemmaChatEngine(getApplication(), litePath, mockEngine)
+                liteRtLmEngine = LiteRtLmGemmaChatEngine(getApplication(), litePath, unreachableEngine)
             }
             return liteRtLmEngine!!
         }
@@ -190,12 +244,12 @@ class ChatViewModel(
                 mediaPipeEngine?.close()
                 mediaPipeEngine = null
                 mediaPipePath = null
-                return mockEngine
+                return unreachableEngine
             }
         if (mediaPipePath != taskPath || mediaPipeEngine == null) {
             mediaPipeEngine?.close()
             mediaPipePath = taskPath
-            mediaPipeEngine = MediaPipeGemmaChatEngine(getApplication(), taskPath, mockEngine)
+            mediaPipeEngine = MediaPipeGemmaChatEngine(getApplication(), taskPath, unreachableEngine)
         }
         return mediaPipeEngine!!
     }
@@ -208,5 +262,10 @@ class ChatViewModel(
         mediaPipeEngine?.close()
         mediaPipeEngine = null
         mediaPipePath = null
+    }
+
+    private companion object {
+        const val UNREACHABLE_MESSAGE =
+            "Vaikuntha is unreachable right now! Please check your connection settings."
     }
 }

@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.litertlm.android)
     implementation(libs.guava)
     implementation(libs.google.material)
+    implementation(libs.androidx.security.crypto)
 
     debugImplementation(libs.compose.ui.tooling)
 

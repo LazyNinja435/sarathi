@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,13 +26,13 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -48,13 +50,17 @@ import com.sarathi.app.ui.components.KrishnaHeader
 import com.sarathi.app.ui.components.MessageBubble
 import com.sarathi.app.ui.components.OfflineBadge
 import com.sarathi.app.ui.components.SacredBackground
+import com.sarathi.app.ui.components.SacredButton
 import com.sarathi.app.ui.components.SacredCard
 import com.sarathi.app.ui.components.SacredCardVariant
 import com.sarathi.app.ui.components.SacredTextField
+import com.sarathi.app.ui.components.SplashCenterLogo
 import com.sarathi.app.ui.navigation.Routes
 import com.sarathi.app.ui.theme.Ink
+import com.sarathi.app.ui.theme.IndigoBubble
 import com.sarathi.app.ui.theme.MidnightIndigo
 import com.sarathi.app.ui.theme.SacredGold
+import com.sarathi.app.ui.theme.SoftGold
 import com.sarathi.app.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -81,10 +87,13 @@ fun ChatScreen(
     val guidanceSurface by chatViewModel.guidanceSurface.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(messages.size, typing) {
+    val showChips = messages.none { it.sender == Sender.User } && !typing
+
+    LaunchedEffect(messages.size, typing, showChips) {
+        val chromeItems = 1 + if (showChips) 1 else 0
         val lastIndex = when {
-            typing -> messages.size
-            messages.isNotEmpty() -> messages.lastIndex
+            typing -> chromeItems + messages.size
+            messages.isNotEmpty() -> chromeItems + messages.lastIndex
             else -> return@LaunchedEffect
         }
         listState.scrollToItem(lastIndex.coerceAtLeast(0))
@@ -94,58 +103,71 @@ fun ChatScreen(
         chatViewModel.ensureWelcomeMessage()
     }
 
-    val showChips = messages.none { it.sender == Sender.User } && !typing
+    fun navigateFromDrawer(route: String) {
+        scope.launch {
+            drawerState.close()
+            onNavigate(route)
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
+                modifier = Modifier.width(300.dp),
                 drawerContainerColor = MidnightIndigo,
             ) {
+                SplashCenterLogo(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(92.dp)
+                        .padding(start = 24.dp, top = 10.dp, bottom = 10.dp),
+                )
                 Text(
                     text = "Sarathi",
                     style = MaterialTheme.typography.headlineSmall,
                     color = SacredGold,
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+                val drawerColors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = IndigoBubble.copy(alpha = 0.74f),
+                    unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    selectedTextColor = SoftGold,
+                    unselectedTextColor = SoftGold,
+                    selectedIconColor = SacredGold,
+                    unselectedIconColor = SacredGold,
                 )
                 NavigationDrawerItem(
-                    label = { Text("Chat", color = SacredGold) },
-                    selected = false,
+                    label = { Text("Chat") },
+                    selected = true,
+                    colors = drawerColors,
                     onClick = {
                         scope.launch { drawerState.close() }
                     },
                 )
                 NavigationDrawerItem(
-                    label = { Text("Verse of the Day", color = SacredGold) },
+                    label = { Text("Verse of the Day") },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigate(Routes.VERSE)
-                    },
+                    colors = drawerColors,
+                    onClick = { navigateFromDrawer(Routes.VERSE) },
                 )
                 NavigationDrawerItem(
-                    label = { Text("When I Feel", color = SacredGold) },
+                    label = { Text("When I Feel") },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigate(Routes.FEEL)
-                    },
+                    colors = drawerColors,
+                    onClick = { navigateFromDrawer(Routes.FEEL) },
                 )
                 NavigationDrawerItem(
-                    label = { Text("My Dharma", color = SacredGold) },
+                    label = { Text("My Dharma") },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigate(Routes.DHARMA)
-                    },
+                    colors = drawerColors,
+                    onClick = { navigateFromDrawer(Routes.DHARMA) },
                 )
                 NavigationDrawerItem(
-                    label = { Text("Settings", color = SacredGold) },
+                    label = { Text("Settings") },
                     selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigate(Routes.SETTINGS)
-                    },
+                    colors = drawerColors,
+                    onClick = { navigateFromDrawer(Routes.SETTINGS) },
                 )
             }
         },
@@ -178,30 +200,35 @@ fun ChatScreen(
                         .imePadding()
                         .padding(horizontal = 12.dp),
                 ) {
-                    KrishnaHeader(showEmblem = true)
-                    Spacer(Modifier.height(8.dp))
-                    if (showChips) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            SUGGESTIONS.forEach { chip ->
-                                FilterChip(
-                                    selected = false,
-                                    enabled = !typing,
-                                    onClick = { chatViewModel.sendUserMessage(chip) },
-                                    label = { Text(chip, style = MaterialTheme.typography.bodySmall) },
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                    }
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
+                        contentPadding = PaddingValues(bottom = 12.dp),
                     ) {
+                        item("chat-header") {
+                            KrishnaHeader(showEmblem = true)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        if (showChips) {
+                            item("suggestions") {
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    SUGGESTIONS.forEach { chip ->
+                                        FilterChip(
+                                            selected = false,
+                                            enabled = !typing,
+                                            onClick = { chatViewModel.sendUserMessage(chip) },
+                                            label = { Text(chip, style = MaterialTheme.typography.bodySmall) },
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
                         items(messages, key = { it.id }) { msg ->
                             MessageBubble(message = msg)
                         }
@@ -233,16 +260,17 @@ fun ChatScreen(
                             imeAction = androidx.compose.ui.text.input.ImeAction.Send,
                             onImeAction = { if (!typing) chatViewModel.sendFromInput() },
                         )
-                        FloatingActionButton(
+                        SacredButton(
                             onClick = {
                                 if (!typing && input.isNotBlank()) chatViewModel.sendFromInput()
                             },
                             modifier = Modifier
                                 .size(52.dp)
                                 .alpha(if (typing || input.isBlank()) 0.42f else 1f),
-                            containerColor = SacredGold,
-                            contentColor = Ink,
                             shape = CircleShape,
+                            fillMaxWidth = false,
+                            minHeight = 52.dp,
+                            contentPadding = PaddingValues(0.dp),
                         ) {
                             Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Send")
                         }

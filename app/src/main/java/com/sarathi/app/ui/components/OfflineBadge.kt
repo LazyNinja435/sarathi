@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,31 +26,43 @@ import com.sarathi.app.ui.theme.SoftGold
 fun OfflineBadge(
     modifier: Modifier = Modifier,
     surface: GuidanceSurface = GuidanceSurface.OfflineGuidance,
+) = Unit
+
+@Composable
+private fun OfflineBadgeContent(
+    modifier: Modifier = Modifier,
+    surface: GuidanceSurface = GuidanceSurface.OfflineGuidance,
 ) {
     val (title, subtitle, icon) = when (surface) {
-        GuidanceSurface.Practice -> Triple(
-            "Practice mode",
-            "Warm guidance without loading the large model",
-            Icons.Outlined.Spa,
+        GuidanceSurface.Practice,
+        GuidanceSurface.OfflineGuidance,
+        -> Triple(
+            "Vaikuntha unreachable",
+            "Check connection settings",
+            Icons.Outlined.WifiOff,
         )
+
+        GuidanceSurface.GoogleAiStudio -> Triple(
+            "Google AI Studio",
+            "Using your configured Gemini API key",
+            Icons.Outlined.Cloud,
+        )
+
         GuidanceSurface.OnDeviceGemma -> Triple(
             "On-device wisdom",
             "Gemma runs privately on this device",
             Icons.Outlined.Psychology,
         )
+
         GuidanceSurface.OnDeviceMediaPipe -> Triple(
             "On-device wisdom",
             "Guidance runs with the bundled engine",
             Icons.Outlined.Psychology,
         )
-        GuidanceSurface.OfflineGuidance -> Triple(
-            "Offline guidance",
-            "No cloud required — install Gemma for fuller replies",
-            Icons.Outlined.WifiOff,
-        )
+
         GuidanceSurface.ModelUpdateRequired -> Triple(
             "On-device wisdom",
-            "Model update required — open Settings to download the new offline model",
+            "Model update required - open Settings to download the new offline model",
             Icons.Outlined.Psychology,
         )
     }
