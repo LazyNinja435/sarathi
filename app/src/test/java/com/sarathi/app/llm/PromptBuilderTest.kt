@@ -26,7 +26,7 @@ class PromptBuilderTest {
     }
 
     @Test
-    fun buildFullPrompt_containsSacredQuoteExplanationRule() {
+    fun buildFullPrompt_containsNaturalSacredQuoteRule() {
         val prompt = PromptBuilder.buildFullPrompt(
             userName = "Test",
             tone = GuidanceTone.Scriptural,
@@ -34,9 +34,23 @@ class PromptBuilderTest {
             userMessage = "What does the Gita say?",
         )
 
-        assertTrue(prompt.contains("It means:"))
-        assertTrue(prompt.contains("For you right now:"))
+        assertTrue(prompt.contains("Do not use labels like \"It means:\" or \"For you right now:\""))
+        assertTrue(prompt.contains("End with a grounding line when a reliable quote, teaching, or fact is available"))
+        assertTrue(prompt.contains("Include the verse number when available"))
         assertTrue(prompt.contains("Never leave Sanskrit"))
+    }
+
+    @Test
+    fun buildFullPrompt_skipsGroundingLineWhenNoReliableSourceIsAvailable() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "Test",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "What is the purpose of life?",
+        )
+
+        assertTrue(prompt.contains("Skip the final quote line"))
+        assertTrue(prompt.contains("do not invent one"))
     }
 
     @Test
