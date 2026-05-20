@@ -1,0 +1,29 @@
+{
+  "name": "@sarathi/api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.1.0",
+    "@google/generative-ai": "^0.24.1",
+    "@sarathi/shared-config": "0.1.0",
+    "@sarathi/shared-persona": "0.1.0",
+    "@sarathi/shared-types": "0.1.0",
+    "fastify": "^5.6.2",
+    "firebase-admin": "^13.6.0",
+    "jose": "^6.1.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -121,16 +121,8 @@ class ChatViewModel(
             )
             return
         }
-        val name = preferences.value.userName.ifBlank { "dear one" }
-        val welcome = buildString {
-            appendLine("My dear $name,")
-            appendLine()
-            appendLine("I have been seated quietly in the chariot of your heart.")
-            appendLine()
-            appendLine("Tell me — what battle stands before you today?")
-        }.trim()
         _messages.value = listOf(
-            ChatMessage(sender = Sender.Assistant, text = welcome),
+            ChatMessage(sender = Sender.Assistant, text = buildChatWelcomeMessage(preferences.value.userName)),
         )
     }
 

@@ -9,39 +9,8 @@ import com.sarathi.app.rag.RagSearchResult
 
 object PromptBuilder {
 
-    const val PERSONA = """
-You are Sarathi, a Krishna-inspired spiritual guide rooted in the Bhagavad Gita. You are not the literal deity. Speak like a gentle guide, not a scholar.
-
-Core guidance rules:
-- Use simple, calm English.
-- Use short sentences.
-- Avoid philosophical jargon.
-- If a deep word is necessary, explain it immediately.
-- Speak as if the user may be sad, tired, anxious, confused, or emotionally overwhelmed.
-- Keep answers practical and easy to understand.
-- Prefer one small next step over long abstract advice.
-- Do not fabricate Sanskrit verses, verse numbers, or scripture references.
-- If no exact retrieved source supports a citation, call the teaching Gita-inspired guidance.
-
-Response shape:
-- Start with one fitting phrase: My dear <userName>, My dear child, My beloved devotee, O gentle soul, O brave heart, or My dear friend.
-- Then give a natural plain-English response.
-- Do not use labels like "It means:" or "For you right now:".
-- If you use a sacred teaching, explain it naturally in the body with simple words.
-- Keep the response gentle and human, like the user is sitting with a trusted guide.
-- End with a grounding line when a reliable quote, teaching, or fact is available.
-- Prefer a real quote from the retrieved Bhagavad Gita, Mahabharata, or sacred context.
-- Put quoted scripture or sacred text in italic Markdown.
-- Include the verse number when available.
-- For a Gita or verse quote, use this final line format:
-    "*<quote-verse>*" -<verse number>
-- For a Mahabharata statement, use this final line format:
-    "*<quote-statement>*" -<spoken by character name>
-- If a real quote is unavailable but a reliable retrieved teaching or fact is available, end with:
-    "*<simple grounded teaching or fact>*" -<source title or citation>
-- If no reliable quote, verse number, speaker, teaching, or fact is available from retrieved context, do not invent one. Skip the final quote line.
-- Never leave Sanskrit, scripture wording, or a philosophical statement unexplained.
-"""
+    val PERSONA: String
+        get() = SarathiPromptContract.persona
 
     fun buildFullPrompt(
         userName: String,
@@ -53,6 +22,7 @@ Response shape:
         sessionMemory: ChatSessionMemory? = null,
         userMemory: UserMemory? = null,
     ): String {
+        val persona = PERSONA.replace("<userName>", userName.ifBlank { "friend" })
         val recent = history
             .filter { it.sender != Sender.System }
             .takeLast(maxHistoryPairs * 2)
@@ -61,7 +31,7 @@ Response shape:
                 "$role: ${m.text}"
             }
         return buildString {
-            appendLine(PERSONA.trim())
+            appendLine(persona.trim())
             appendLine()
             appendLine("The seeker's name: $userName")
             appendLine(toneHint(tone))
@@ -77,7 +47,7 @@ Response shape:
             }
             appendLine("Seeker: $userMessage")
             appendLine()
-            appendLine("Sarathi (reply in plain text, under ~120 words):")
+            appendLine(SarathiPromptContract.plainTextReplyInstruction)
         }
     }
 
@@ -88,11 +58,11 @@ Response shape:
         sessionMemory: ChatSessionMemory? = null,
         userMemory: UserMemory? = null,
     ): String = buildString {
-        appendLine(PERSONA.trim())
+        appendLine(PERSONA.replace("<userName>", userName.ifBlank { "friend" }).trim())
         appendLine()
         appendLine("The seeker's name: $userName")
         appendLine(toneHint(tone))
-        appendLine("Reply in plain text, under ~120 words.")
+        appendLine(SarathiPromptContract.systemReplyInstruction)
         appendLine()
         appendMemorySections(sessionMemory, userMemory)
         if (retrievedContext.isNotEmpty()) {

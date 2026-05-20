@@ -107,6 +107,36 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 - `ModelManager`
 - `PromptBuilder`
 
+### Shared prompt contract
+
+- Universal persona / response-shape source of truth:
+  `shared/persona/sarathi_prompt_contract.json`
+- Generated Android contract:
+  `app/src/main/java/com/sarathi/app/llm/SarathiPromptContract.kt`
+- Generated web contract:
+  `web/packages/shared-persona/src/generatedPromptContract.ts`
+- Regenerate after changing the shared JSON:
+  `node tools/generate_sarathi_prompt_contract.mjs`
+- Do not reintroduce separate Android/web response formats. In particular, do not use visible response labels like
+  `"It means:"` or `"For you right now:"`; explanations should be natural in the body.
+
+### Shared brand assets
+
+- Canonical Sarathi logo:
+  `shared/brand/sarathi-logo.png`
+- The canonical logo is generated from Android launch-center source assets:
+  `app/src/main/res/drawable-nodpi/splash_hero_flute.png`
+  and `app/src/main/res/drawable-nodpi/splash_hero_feather.png`
+- Android adaptive icon foreground copy:
+  `app/src/main/res/drawable-nodpi/ic_launcher_logo_foreground.png`
+- Web public copy:
+  `web/apps/frontend/public/brand/sarathi-logo.png`
+- Regenerate the canonical logo from repo root:
+  `python tools/generate_sarathi_canonical_logo.py`
+- Sync Android/web brand copies from repo root:
+  `node tools/sync_sarathi_brand_assets.mjs`
+- Do not create platform-specific Sarathi logos. Use the canonical launch-center flute + peacock feather mark across Android, web, and future iOS.
+
 ### `rag/`
 
 - SQLite / FTS-based retrieval.

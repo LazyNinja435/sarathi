@@ -11,6 +11,13 @@ models/
 app/src/main/assets/models/
 local-models/
 dist/
+web/node_modules/
+web/**/node_modules/
+web/**/dist/
+web/**/.env
+!web/.env.example
+web/firebase-debug.log
+web/.firebase/
 verification/*.log
 verification/gemma_mediapipe_logcat.txt
 __pycache__/

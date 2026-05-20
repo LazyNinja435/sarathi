@@ -35,13 +35,27 @@ class PromptBuilderTest {
         )
 
         assertTrue(prompt.contains("Do not use labels like \"It means:\" or \"For you right now:\""))
-        assertTrue(prompt.contains("End with a grounding line when a reliable quote, teaching, or fact is available"))
-        assertTrue(prompt.contains("Include the verse number when available"))
+        assertTrue(prompt.contains("Always include exactly one grounded verse reference"))
+        assertTrue(prompt.contains("Explain the verse naturally in simple English immediately"))
         assertTrue(prompt.contains("Never leave Sanskrit"))
     }
 
     @Test
-    fun buildFullPrompt_skipsGroundingLineWhenNoReliableSourceIsAvailable() {
+    fun buildFullPrompt_containsSavedGreetingSetInstruction() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "Pruthvi",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "I am tired",
+        )
+
+        assertTrue(prompt.contains("Start with exactly one greeting from this saved set"))
+        assertTrue(prompt.contains("My dear Pruthvi"))
+        assertTrue(prompt.contains("Do not always use My dear friend"))
+    }
+
+    @Test
+    fun buildFullPrompt_includesFallbackGitaVersesWhenNoRagContextIsAvailable() {
         val prompt = PromptBuilder.buildFullPrompt(
             userName = "Test",
             tone = GuidanceTone.Gentle,
@@ -49,8 +63,9 @@ class PromptBuilderTest {
             userMessage = "What is the purpose of life?",
         )
 
-        assertTrue(prompt.contains("Skip the final quote line"))
-        assertTrue(prompt.contains("do not invent one"))
+        assertTrue(prompt.contains("Approved fallback Gita verses"))
+        assertTrue(prompt.contains("Bhagavad Gita 2.47"))
+        assertTrue(prompt.contains("Always include exactly one grounded verse reference"))
     }
 
     @Test

@@ -1,0 +1,19 @@
+{
+  "name": "sarathi-web",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @sarathi/shared-types && npm run build -w @sarathi/shared-config && npm run build -w @sarathi/shared-persona && npm run build -w @sarathi/api && npm run build -w @sarathi/frontend",
+    "test": "npm run build -w @sarathi/shared-types && npm run build -w @sarathi/shared-config && npm run build -w @sarathi/shared-persona && npm run test -w @sarathi/shared-types && npm run test -w @sarathi/shared-persona && npm run test -w @sarathi/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:frontend": "npm run dev -w @sarathi/frontend",
+    "dev:api": "npm run dev -w @sarathi/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
