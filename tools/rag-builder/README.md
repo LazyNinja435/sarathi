@@ -38,9 +38,16 @@ If normalization cannot find raw files, the builder prints **clear errors**, wri
 |--------|------|
 | Gita JSONL | `knowledge/sources/gita/processed/gita_verses.jsonl` |
 | Mahabharata JSONL | `knowledge/sources/mahabharata/processed/mahabharata_chunks.jsonl` |
-| SQLite | `knowledge/indexes/sarathi_rag.sqlite` |
-| Android copy | `app/src/main/assets/rag/sarathi_rag.sqlite` |
+| Canonical SQLite | `knowledge/indexes/sarathi_rag.sqlite` |
+| Android package copy | `app/src/main/assets/rag/sarathi_rag.sqlite` |
+| Web package JSON | `web/apps/frontend/public/rag/sarathi_rag.json` |
 | Manifests | `knowledge/indexes/sarathi_rag_manifest.json`, `build_report.json` |
+
+`knowledge/` is the source of truth. Android and web artifacts are generated package copies. To refresh package artifacts without rebuilding the corpus:
+
+```powershell
+.\scripts\sync-rag-assets.ps1
+```
 
 ## Troubleshooting
 

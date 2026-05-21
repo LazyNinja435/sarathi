@@ -7,8 +7,12 @@ services:
       - .env
     environment:
       PORT: 3001
+      SARATHI_KNOWLEDGE_ROOT: /app
     ports:
       - "127.0.0.1:3411:3001"
+    volumes:
+      - ./data/api:/data
+      - ../knowledge:/app/knowledge:ro
     restart: unless-stopped
 
   frontend:

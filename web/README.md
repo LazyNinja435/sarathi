@@ -1,6 +1,6 @@
 # Sarathi Web
 
-Sarathi Web is the browser version of Sarathi, built in the same repository as the Android app. It uses Firebase Auth and Firestore for v1 user state, and a Pi-hosted Fastify API for Gemini calls with a user-provided Google AI Studio key.
+Sarathi Web is the browser version of Sarathi, built in the same repository as the Android app. It uses Firebase Auth and Firestore for v1 user state. Demo chat uses the Sarathi API with a server-provided OpenRouter key; user-key mode stores the key only in the browser and calls Gemini/OpenRouter directly from the frontend.
 
 ## Apps
 

@@ -172,34 +172,105 @@ def _load_gita_documents() -> list[dict[str, Any]]:
         if not line.strip():
             continue
         o = json.loads(line)
-        ch = int(o["chapter"])
-        vs = int(o["verse"])
-        meta = {"chapter": ch, "verse": vs, "chapter_title": o.get("chapter_title", "")}
-        full_text_parts = [o.get("translation", "")]
-        if o.get("sanskrit"):
-            full_text_parts.append(o["sanskrit"])
+        doc = _normalize_gita_row(o)
+        ch = doc["chapter"]
+        vs = doc["verse"]
+        meta = {
+            "chapter": ch,
+            "verse": vs,
+            "chapter_title": doc["chapter_title"],
+            "teaching": doc.get("teaching", {}),
+            "safety": doc.get("safety", {}),
+        }
+        full_text_parts = [doc["translation"]]
+        if doc["sanskrit"]:
+            full_text_parts.append(doc["sanskrit"])
         text_joined = "\n\n".join([x for x in full_text_parts if x])
         rows.append(
             {
-                "id": o["id"],
-                "collection": o["collection"],
-                "work": o["work"],
-                "title": o["citation"],
+                "id": doc["id"],
+                "collection": doc["collection"],
+                "work": doc["work"],
+                "title": doc["citation"],
                 "section_path": f"gita/{ch:02d}/{vs:03d}",
-                "citation": o["citation"],
-                "source_id": o["source_id"],
-                "language": o.get("language", "en"),
+                "citation": doc["citation"],
+                "source_id": doc["source_id"],
+                "language": doc["language"],
                 "text": text_joined,
-                "sanskrit": o.get("sanskrit", ""),
-                "transliteration": o.get("transliteration", ""),
-                "translation": o.get("translation", ""),
-                "commentary": o.get("commentary", ""),
-                "themes_json": json.dumps(o.get("themes", []), ensure_ascii=False),
-                "entities_json": json.dumps(o.get("entities", []), ensure_ascii=False),
+                "sanskrit": doc["sanskrit"],
+                "transliteration": doc["transliteration"],
+                "translation": doc["translation"],
+                "commentary": doc["search_text"],
+                "themes_json": json.dumps(doc["themes"], ensure_ascii=False),
+                "entities_json": json.dumps(doc["entities"], ensure_ascii=False),
                 "metadata_json": json.dumps(meta, ensure_ascii=False),
             }
         )
     return rows
+
+
+def _normalize_gita_row(o: dict[str, Any]) -> dict[str, Any]:
+    if "source" not in o:
+        return {
+            "id": o["id"],
+            "collection": o["collection"],
+            "work": o["work"],
+            "chapter": int(o["chapter"]),
+            "verse": int(o["verse"]),
+            "citation": o["citation"],
+            "chapter_title": o.get("chapter_title", ""),
+            "source_id": o["source_id"],
+            "language": o.get("language", "en"),
+            "sanskrit": o.get("sanskrit", ""),
+            "transliteration": o.get("transliteration", ""),
+            "translation": o.get("translation", ""),
+            "search_text": o.get("search_text", ""),
+            "themes": o.get("themes", []),
+            "entities": o.get("entities", []),
+            "teaching": {},
+            "safety": {},
+        }
+
+    source = o.get("source", {})
+    content = o.get("content", {})
+    retrieval = o.get("retrieval", {})
+    rag = o.get("rag", {})
+    themes = _unique_strings(
+        retrieval.get("primary_topics", [])
+        + retrieval.get("secondary_topics", [])
+        + retrieval.get("intent_matches", [])
+        + retrieval.get("spiritual_concepts", [])
+    )
+    return {
+        "id": o["id"],
+        "collection": "gita",
+        "work": source.get("text", "Bhagavad Gita"),
+        "chapter": int(source["chapter"]),
+        "verse": int(source["verse"]),
+        "citation": source["citation"],
+        "chapter_title": source.get("chapter_title", ""),
+        "source_id": source.get("source_id", ""),
+        "language": o.get("metadata", {}).get("language", "en"),
+        "sanskrit": content.get("sanskrit", ""),
+        "transliteration": content.get("transliteration", ""),
+        "translation": content.get("translation", ""),
+        "search_text": rag.get("search_text", ""),
+        "themes": themes,
+        "entities": _unique_strings(["Krishna", "Arjuna"]),
+        "teaching": o.get("teaching", {}),
+        "safety": o.get("safety", {}),
+    }
+
+
+def _unique_strings(values: list[Any]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value).strip()
+        if text and text not in seen:
+            seen.add(text)
+            out.append(text)
+    return out
 
 
 def _load_mahabharata_documents() -> list[dict[str, Any]]:

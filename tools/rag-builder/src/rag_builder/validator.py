@@ -41,14 +41,15 @@ def validate_corpus() -> dict[str, Any]:
 
     gita_chapter_verse: set[tuple[int, int]] = set()
     for row in g_verses:
+        normalized = _gita_fields(row)
         for field in ("translation", "citation", "source_id", "license", "search_text"):
-            if not str(row.get(field, "")).strip():
+            if not str(normalized.get(field, "")).strip():
                 errors.append(f"gita row {row.get('id')}: empty {field}")
-        if row.get("source_id") not in known_sources:
-            errors.append(f"gita row {row.get('id')}: unknown source_id {row.get('source_id')}")
+        if normalized.get("source_id") not in known_sources:
+            errors.append(f"gita row {row.get('id')}: unknown source_id {normalized.get('source_id')}")
         try:
-            ch = int(row["chapter"])
-            vs = int(row["verse"])
+            ch = int(normalized["chapter"])
+            vs = int(normalized["verse"])
         except (KeyError, TypeError, ValueError):
             errors.append(f"gita row {row.get('id')}: bad chapter/verse")
             continue
@@ -94,6 +95,29 @@ def validate_corpus() -> dict[str, Any]:
     }
 
 
+def _gita_fields(row: dict[str, Any]) -> dict[str, Any]:
+    if "source" not in row:
+        return {
+            "chapter": row.get("chapter"),
+            "verse": row.get("verse"),
+            "translation": row.get("translation"),
+            "citation": row.get("citation"),
+            "source_id": row.get("source_id"),
+            "license": row.get("license"),
+            "search_text": row.get("search_text"),
+        }
+    source = row.get("source", {})
+    return {
+        "chapter": source.get("chapter"),
+        "verse": source.get("verse"),
+        "translation": row.get("content", {}).get("translation"),
+        "citation": source.get("citation"),
+        "source_id": source.get("source_id"),
+        "license": source.get("license"),
+        "search_text": row.get("rag", {}).get("search_text"),
+    }
+
+
 def write_build_report(
     gita_val: dict[str, Any],
     mbh_val: dict[str, Any],
@@ -104,10 +128,10 @@ def write_build_report(
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "gita_verses_imported": gita_val.get("verse_count", 0),
+        "gita_verses_imported": gita_val.get("verse_count", sqlite_info.get("gita_documents", 0)),
         "expected_gita_verse_count": gita_val.get("expected_verse_count", 700),
-        "gita_complete_flag": bool(gita_val.get("complete")),
-        "mahabharata_chunks_imported": mbh_val.get("chunk_count", 0),
+        "gita_complete_flag": bool(gita_val.get("complete", sqlite_info.get("gita_documents") == 700)),
+        "mahabharata_chunks_imported": mbh_val.get("chunk_count", sqlite_info.get("mahabharata_documents", 0)),
         "mahabharata_parvas_detected": mbh_val.get("parvas_detected", 0),
         "mahabharata_sections_detected": mbh_val.get("sections_detected", 0),
         "missing_mahabharata_parvas": mbh_val.get("missing_parva_numbers", []),

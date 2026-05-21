@@ -74,7 +74,10 @@ The app runs fully **without internet** using **MockKrishnaChatEngine**: short, 
 
 ## Offline RAG (SQLite FTS5)
 
-- Bundled database: **`app/src/main/assets/rag/sarathi_rag.sqlite`** (manifest: `app/src/main/assets/rag/sarathi_rag_manifest.json`).
+- Source of truth: **`knowledge/`**.
+- Canonical database: **`knowledge/indexes/sarathi_rag.sqlite`**.
+- Android package copy: **`app/src/main/assets/rag/sarathi_rag.sqlite`**.
+- Web package export: **`web/apps/frontend/public/rag/sarathi_rag.json`**.
 - v1 retrieval uses **SQLite FTS5** keyword search with BM25 ranking — **no embeddings** in the app bundle yet.
 - Rebuild the corpus and copy fresh assets:
 
@@ -83,6 +86,12 @@ py -m venv .venv
 .\.venv\Scripts\activate
 pip install -r tools\rag-builder\requirements.txt
 python tools\rag-builder\scripts\build_all.py --download --normalize --index
+```
+
+To refresh Android and web package artifacts from `knowledge/indexes` without rebuilding:
+
+```powershell
+.\scripts\sync-rag-assets.ps1
 ```
 
 See **`docs/RAG_INTEGRATION.md`** for how `ChatViewModel`, `PromptBuilder`, and `VerseRepository` use RAG.

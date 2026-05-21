@@ -131,9 +131,9 @@ export function buildSarathiPrompt(input: BuildSarathiPromptInput): string {
     ? [
         "Retrieved scripture context:",
         ...input.ragPassages.slice(0, 5).flatMap((passage, index) => [
-          `[${index + 1}] ${passage.citation} - ${passage.work}${passage.title ? `, ${passage.title}` : ""}`,
+          `[${index + 1}] ${passage.citation} - ${passage.work ?? (passage as { source?: string }).source ?? "Scripture"}${passage.title ? `, ${passage.title}` : ""}`,
           (passage.translation || passage.text).slice(0, 900),
-          passage.themes.length ? `Themes: ${passage.themes.join(", ")}` : "",
+          passage.themes?.length ? `Themes: ${passage.themes.join(", ")}` : "",
           ""
         ]),
         "Use these retrieved passages before the fallback verse list.",

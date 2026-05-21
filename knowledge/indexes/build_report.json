@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-05-14T18:29:53.883856+00:00",
+  "generated_at": "2026-05-21T20:07:04.934410+00:00",
   "gita_verses_imported": 700,
   "expected_gita_verse_count": 700,
   "gita_complete_flag": true,
   "mahabharata_chunks_imported": 3929,
-  "mahabharata_parvas_detected": 18,
-  "mahabharata_sections_detected": 1877,
+  "mahabharata_parvas_detected": 0,
+  "mahabharata_sections_detected": 0,
   "missing_mahabharata_parvas": [],
   "source_coverage": {
     "gita_primary": "besant_wikisource_1922",
@@ -17,9 +17,5 @@
     "mahabharata_documents": 3929,
     "concepts": 15
   },
-  "warnings": [
-    "Duplicate verse dropped: (1, 21)",
-    "Duplicate verse dropped: (1, 27)",
-    "Omitted Besant Bhagavad Gita 13.35 from export: the 700-shloka canon counts 34 verses in chapter 13; Besant Wikisource labels a 35th stanza."
-  ]
+  "warnings": []
 }

@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "./firebase";
 import { clearConversationHistory, ensureUserDefaults, getDevDashboardStats, getUserMemory, saveConversationMessage, saveUserMemory, type DevDashboardStats } from "./firestore";
-import { ragDebugFor, searchRagPassages, type RagSearchDebug } from "./rag";
 import {
   clearGeminiApiKey,
   clearOpenRouterApiKey,
@@ -38,6 +37,11 @@ const starterPrompts = [
   "I want to understand my dharma",
   "Teach me a verse"
 ];
+
+interface RagSearchDebug {
+  used: boolean;
+  sources: string[];
+}
 
 function providerHasSavedKey(provider: AiProvider) {
   return Boolean((provider === "openrouter" ? readOpenRouterApiKey() : readGeminiApiKey()).trim());
@@ -182,39 +186,20 @@ function Chat({ user }: { user: User | null }) {
     setInput("");
 
     try {
-      const ragPassages = await searchRagPassages(text, 5).catch(() => []);
-      setRagDebug(ragDebugFor(ragPassages));
-      const token = user ? await user.getIdToken() : "";
       const longTermMemory = user ? await getUserMemory(user.uid) : null;
-      const response = await fetch(`${apiBaseUrl}/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          mode,
-          provider,
-          apiKey: mode === "user_key" ? apiKey : undefined,
-          demoClientId: mode === "demo" ? getDemoClientId() : undefined,
-          conversationId,
-          latestUserMessage: text,
-          recentHistory: messages.slice(-8),
-          ragPassages,
-          shortTermMemory: inferShortTermMemory(nextMessages),
-          longTermMemory
-        })
+      const shortTermMemory = inferShortTermMemory(nextMessages);
+      const data = await requestBackendSarathiResponse({
+        mode,
+        provider,
+        apiKey,
+        latestUserMessage: text,
+        recentHistory: messages.slice(-8),
+        shortTermMemory,
+        longTermMemory,
+        user
       });
-      const data = await response.json() as {
-        assistantMessage?: string;
-        provider?: string;
-        rag?: RagSearchDebug;
-        demo?: { messagesRemaining: number; messageLimit: number };
-        error?: string;
-      };
-      if (!response.ok || !data.assistantMessage) throw new Error(data.error || "Sarathi could not answer right now.");
-      if (data.demo) setDemoRemaining(data.demo.messagesRemaining);
-      if (data.rag) setRagDebug(data.rag);
+      if ("demo" in data && data.demo) setDemoRemaining(data.demo.messagesRemaining);
+      if ("rag" in data && data.rag) setRagDebug(data.rag);
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -242,7 +227,7 @@ function Chat({ user }: { user: User | null }) {
       <div className="chat-panel">
         <div className="chat-heading">
           <div>
-            <p className="eyebrow">{apiMode === "demo" || !user ? "Demo guidance through OpenRouter" : `Using your ${provider === "gemini" ? "Google AI Studio" : "OpenRouter"} key`}</p>
+            <p className="eyebrow">{apiMode === "demo" || !user ? "Demo guidance through Google AI Studio" : `Using your ${provider === "gemini" ? "Google AI Studio" : "OpenRouter"} key`}</p>
             <h2>What rests upon your heart?</h2>
           </div>
           <button className="ghost" onClick={async () => {
@@ -306,6 +291,56 @@ function Chat({ user }: { user: User | null }) {
   );
 }
 
+async function requestBackendSarathiResponse(input: {
+  mode: ApiMode;
+  provider: AiProvider;
+  apiKey: string;
+  latestUserMessage: string;
+  recentHistory: ChatMessage[];
+  shortTermMemory: ShortTermMemory;
+  longTermMemory: Awaited<ReturnType<typeof getUserMemory>> | null;
+  user: User | null;
+}): Promise<{
+  assistantMessage: string;
+  provider?: string;
+  rag?: RagSearchDebug;
+  demo?: { messagesRemaining: number; messageLimit: number };
+}> {
+  const token = input.user ? await input.user.getIdToken() : null;
+  const response = await fetch(`${apiBaseUrl}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({
+      mode: input.mode,
+      provider: input.provider,
+      apiKey: input.mode === "user_key" ? input.apiKey : undefined,
+      demoClientId: getDemoClientId(),
+      conversationId,
+      latestUserMessage: input.latestUserMessage,
+      recentHistory: input.recentHistory,
+      shortTermMemory: input.shortTermMemory,
+      longTermMemory: input.longTermMemory
+    })
+  });
+  const data = await response.json() as {
+    assistantMessage?: string;
+    provider?: string;
+    rag?: RagSearchDebug;
+    demo?: { messagesRemaining: number; messageLimit: number };
+    error?: string;
+  };
+  if (!response.ok || !data.assistantMessage) throw new Error(data.error || "Sarathi could not answer right now.");
+  return {
+    assistantMessage: data.assistantMessage,
+    provider: data.provider,
+    rag: data.rag,
+    demo: data.demo
+  };
+}
+
 function SettingsPage({ user }: { user: User | null }) {
   const navigate = useNavigate();
   const [authError, setAuthError] = useState("");
@@ -352,7 +387,7 @@ function SettingsPage({ user }: { user: User | null }) {
       <div className="settings-panel">
         <p className="eyebrow">AI Provider</p>
         <h2>API key</h2>
-        <p className="settings-note">Demo mode uses Sarathi's server key. Your own key is stored only in this browser.</p>
+        <p className="settings-note">Demo mode uses Sarathi's server key. Your own key is saved in this browser and sent to Sarathi's API only when you send a message. The server does not store it.</p>
         <div className="segmented-control" role="tablist" aria-label="API key mode">
           <button className={apiMode === "demo" ? "active" : ""} onClick={() => chooseMode("demo")}>Demo Mode</button>
           <button className={apiMode === "user_key" ? "active" : ""} onClick={() => chooseMode("user_key")}>Use My Key</button>
@@ -385,7 +420,7 @@ function SettingsPage({ user }: { user: User | null }) {
               <button className="primary-action small" onClick={saveKey}>Save key</button>
               <button className="ghost" onClick={forgetKey}>Forget key</button>
             </div>
-            {saved && <p className="success">Saved in this browser.</p>}
+            {saved && <p className="success">Saved in this browser. Sarathi's API will use this key only for your chat requests.</p>}
           </>
         )}
       </div>

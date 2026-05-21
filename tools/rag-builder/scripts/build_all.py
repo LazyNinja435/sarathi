@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from rag_builder.downloader import run_downloads
@@ -24,7 +26,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Sarathi RAG offline builder")
     p.add_argument("--download", action="store_true", help="Fetch remote raw sources (best-effort)")
     p.add_argument("--normalize", action="store_true", help="Parse raw → processed JSONL")
-    p.add_argument("--index", action="store_true", help="Build SQLite + copy to Android assets")
+    p.add_argument("--index", action="store_true", help="Build canonical SQLite and refresh Android/web RAG assets")
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args()
     setup_logging(args.verbose)

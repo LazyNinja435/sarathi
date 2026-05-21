@@ -6,10 +6,12 @@ const env: ApiEnv = {
   port: 3001,
   allowedOrigin: "https://talkto.sreekrishna.uk",
   geminiModel: "gemini-flash-lite-latest",
+  geminiDemoApiKey: "gemini-demo-key-that-is-long",
   openRouterDemoApiKey: "demo-server-key-that-is-long",
   openRouterDemoModel: "openrouter/free",
   openRouterUserModel: "openrouter/free",
   demoMessageLimit: 10,
+  devdashStatsPath: "/tmp/sarathi-devdash-test.json",
   adminEmails: [],
   adminUids: [],
   skipFirebaseAuth: true
@@ -27,14 +29,15 @@ describe("api", () => {
     expect(response.json()).toMatchObject({ ok: true, service: "sarathi-api" });
   });
 
-  it("allows unauthenticated demo chat through the server key", async () => {
+  it("allows unauthenticated demo chat through the Gemini server key", async () => {
     const app = createApp({
       env,
       logger: false,
       authVerifier: { verifyIdToken: async () => ({ uid: "u1" }) },
-      generateResponse: async ({ apiKey, model }) => {
-        expect(apiKey).toBe(env.openRouterDemoApiKey);
-        expect(model).toBe("openrouter/free");
+      generateResponse: async ({ apiKey, model, provider }) => {
+        expect(apiKey).toBe(env.geminiDemoApiKey);
+        expect(provider).toBe("gemini");
+        expect(model).toBe("gemini-flash-lite-latest");
         return { text: "A calm demo answer.", usage: undefined };
       }
     });
@@ -45,12 +48,38 @@ describe("api", () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      provider: "openrouter",
-      model: "openrouter/free",
+      provider: "gemini",
+      model: "gemini-flash-lite-latest",
       demo: { messagesRemaining: 9, messageLimit: 10 }
     });
     expect(response.json().assistantMessage).toContain("A calm demo answer.");
     expect(response.json().assistantMessage).toContain("Bhagavad Gita");
+  });
+
+  it("falls back to OpenRouter when demo Gemini fails", async () => {
+    const calls: Array<{ provider?: string; apiKey: string; model: string }> = [];
+    const app = createApp({
+      env,
+      logger: false,
+      authVerifier: { verifyIdToken: async () => ({ uid: "u1" }) },
+      generateResponse: async ({ apiKey, model, provider }) => {
+        calls.push({ apiKey, model, provider });
+        if (provider === "gemini") throw new Error("Gemini unavailable");
+        return { text: "A calm OpenRouter fallback answer.", usage: undefined };
+      }
+    });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/chat",
+      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello" }
+    });
+    expect(response.statusCode).toBe(200);
+    expect(calls).toEqual([
+      { apiKey: env.geminiDemoApiKey, model: "gemini-flash-lite-latest", provider: "gemini" },
+      { apiKey: env.openRouterDemoApiKey, model: "openrouter/free", provider: "openrouter" }
+    ]);
+    expect(response.json()).toMatchObject({ provider: "openrouter", model: "openrouter/free" });
+    expect(response.json().assistantMessage).toContain("A calm OpenRouter fallback answer.");
   });
 
   it("requires auth for user provided keys", async () => {
@@ -163,12 +192,12 @@ describe("api", () => {
       payload: { mode: "demo", conversationId: "c1", latestUserMessage: "How to choose between mother and wife?" }
     });
     const text = response.json().assistantMessage as string;
-    expect(text.match(/Bhagavad Gita 2\.48/g)?.length).toBe(1);
+    expect(text.match(/Bhagavad Gita \d+\.\d+/g) ?? []).toHaveLength(1);
     expect(text).not.toContain("In the Bhagavad Gita 2.48");
-    expect(text.trim().endsWith("-Bhagavad Gita 2.48")).toBe(true);
+    expect(text.trim()).toMatch(/\*.+\* -Bhagavad Gita \d+\.\d+$/);
   });
 
-  it("passes RAG passages into the model prompt", async () => {
+  it("retrieves backend RAG passages into the model prompt", async () => {
     let promptSeenByProvider = "";
     const app = createApp({
       env,
@@ -185,21 +214,13 @@ describe("api", () => {
       payload: {
         mode: "demo",
         conversationId: "c1",
-        latestUserMessage: "I failed.",
-        ragPassages: [{
-          id: "gita_02_047_besant",
-          collection: "gita",
-          work: "Bhagavad Gita",
-          title: "Bhagavad Gita 2.47",
-          citation: "Bhagavad Gita 2.47",
-          text: "Thy right is to work only, but never to its fruits.",
-          themes: ["karma_yoga"]
-        }]
+        latestUserMessage: "I worked hard but failed and feel anxious about the result."
       }
     });
     expect(response.statusCode).toBe(200);
     expect(promptSeenByProvider).toContain("Retrieved scripture context:");
     expect(promptSeenByProvider).toContain("Bhagavad Gita 2.47");
+    expect(response.json().rag.sources).toContain("Bhagavad Gita 2.47");
   });
 
   it("requires auth for dev dashboard stats", async () => {
@@ -264,5 +285,59 @@ describe("api", () => {
       users: [{ uid: "u1", messageCount: 3 }]
     });
     expect(response.body).not.toContain("latestUserMessage");
+  });
+
+  it("tracks unauthenticated demo messages as guest usage after successful chat", async () => {
+    let guestMessages = 0;
+    const app = createApp({
+      env: { ...env, adminEmails: ["admin@example.com"] },
+      logger: false,
+      authVerifier: { verifyIdToken: async () => ({ uid: "admin", email: "admin@example.com" }) },
+      guestUsageStore: {
+        incrementGuestMessages: async () => {
+          guestMessages += 1;
+        },
+        readGuestStats: async () => ({ totalGuestMessages: guestMessages })
+      },
+      generateResponse: async () => ({ text: "A calm guest answer.", usage: undefined })
+    });
+    const chat = await app.inject({
+      method: "POST",
+      url: "/api/chat",
+      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello as guest" }
+    });
+    expect(chat.statusCode).toBe(200);
+
+    const stats = await app.inject({
+      method: "GET",
+      url: "/api/devdash/guest-stats",
+      headers: { authorization: "Bearer admin-token" }
+    });
+    expect(stats.statusCode).toBe(200);
+    expect(stats.json()).toMatchObject({ totalGuestMessages: 1 });
+  });
+
+  it("does not count signed-in demo messages as guest usage", async () => {
+    let guestMessages = 0;
+    const app = createApp({
+      env: { ...env, adminEmails: ["admin@example.com"] },
+      logger: false,
+      authVerifier: { verifyIdToken: async () => ({ uid: "u1", email: "seeker@example.com" }) },
+      guestUsageStore: {
+        incrementGuestMessages: async () => {
+          guestMessages += 1;
+        },
+        readGuestStats: async () => ({ totalGuestMessages: guestMessages })
+      },
+      generateResponse: async () => ({ text: "A calm signed-in demo answer.", usage: undefined })
+    });
+    const chat = await app.inject({
+      method: "POST",
+      url: "/api/chat",
+      headers: { authorization: "Bearer user-token" },
+      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello signed in" }
+    });
+    expect(chat.statusCode).toBe(200);
+    expect(guestMessages).toBe(0);
   });
 });

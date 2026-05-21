@@ -117,4 +117,24 @@ describe("Sarathi persona", () => {
     expect(prompt).toContain("[1] Bhagavad Gita 2.47");
     expect(prompt).toContain("Thy right is to work only");
   });
+
+  it("accepts RAG passages without optional metadata at the API boundary", () => {
+    const prompt = buildSarathiPrompt({
+      userName: "Pruthvi",
+      latestUserMessage: "I worked hard but failed.",
+      recentHistory: [],
+      ragPassages: [
+        {
+          id: "gita_02_047_smoke",
+          collection: "gita",
+          source: "Bhagavad Gita",
+          citation: "Bhagavad Gita 2.47",
+          text: "You have a right to perform your prescribed duties, but you are not entitled to the fruits of your actions."
+        } as never
+      ]
+    });
+
+    expect(prompt).toContain("[1] Bhagavad Gita 2.47 - Bhagavad Gita");
+    expect(prompt).toContain("You have a right to perform your prescribed duties");
+  });
 });

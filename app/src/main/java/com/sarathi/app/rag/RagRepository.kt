@@ -55,10 +55,8 @@ class RagRepository(private val appContext: Context) {
 
     suspend fun getVerse(chapter: Int, verse: Int): RagSearchResult? = withContext(Dispatchers.IO) {
         val database = getDb() ?: return@withContext null
-        val pattern =
-            "gita_${chapter.toString().padStart(2, '0')}_${verse.toString().padStart(3, '0')}_*"
-        val sql = "SELECT d.*, 1.0 AS rank FROM documents d WHERE d.collection = 'gita' AND d.id GLOB ? LIMIT 1"
-        rawSearch(database, sql, arrayOf(pattern)).firstOrNull()
+        val sql = "SELECT d.*, 1.0 AS rank FROM documents d WHERE d.collection = 'gita' AND d.id = ? LIMIT 1"
+        rawSearch(database, sql, arrayOf(gitaVerseId(chapter, verse))).firstOrNull()
     }
 
     suspend fun getVerseOfDay(): RagSearchResult? = withContext(Dispatchers.IO) {
@@ -167,5 +165,7 @@ class RagRepository(private val appContext: Context) {
 
     companion object {
         const val ASSET_RELATIVE_PATH: String = ASSET_DB
+
+        internal fun gitaVerseId(chapter: Int, verse: Int): String = "BG-$chapter-$verse"
     }
 }

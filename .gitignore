@@ -1,4 +1,6 @@
 *.iml
+/.ai/
+*.tsbuildinfo
 .gradle/
 .gradle
 /local.properties
@@ -11,6 +13,7 @@ models/
 app/src/main/assets/models/
 local-models/
 dist/
+node_modules/
 web/node_modules/
 web/**/node_modules/
 web/**/dist/
@@ -19,6 +22,7 @@ web/**/.env
 web/firebase-debug.log
 web/.firebase/
 verification/*.log
+verification/*logcat*.txt
 verification/gemma_mediapipe_logcat.txt
 __pycache__/
 *.pyc
@@ -41,3 +45,4 @@ captures
 signing.properties
 release-secrets/
 .github/tmp/
+knowledge/sources/archive/

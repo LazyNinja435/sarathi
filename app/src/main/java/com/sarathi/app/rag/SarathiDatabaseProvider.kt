@@ -26,7 +26,8 @@ object SarathiDatabaseProvider {
      */
     fun openReadableDatabase(context: Context): SQLiteDatabase? {
         val f = databaseFile(context)
-        if (!f.exists()) {
+        if (!f.exists() || shouldRefreshDatabase(f.length(), assetSizeBytes(context))) {
+            f.delete()
             if (!copyFromAssets(context, f)) return null
         }
         fun tryOpen(): SQLiteDatabase? =
@@ -68,5 +69,15 @@ object SarathiDatabaseProvider {
             context.assets.open(ASSET_DB).use { true }
         } catch (_: Exception) {
             false
+        }
+
+    internal fun shouldRefreshDatabase(currentBytes: Long, assetBytes: Long): Boolean =
+        currentBytes > 0 && assetBytes > 0 && currentBytes != assetBytes
+
+    private fun assetSizeBytes(context: Context): Long =
+        try {
+            context.assets.open(ASSET_DB).use { it.available().toLong() }
+        } catch (_: Exception) {
+            -1L
         }
 }

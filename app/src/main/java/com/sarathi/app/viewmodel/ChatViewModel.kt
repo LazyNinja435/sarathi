@@ -21,6 +21,7 @@ import com.sarathi.app.update.ManifestCache
 import com.sarathi.app.model.GuidanceTone
 import com.sarathi.app.model.Sender
 import com.sarathi.app.model.UserMemory
+import com.sarathi.app.rag.GuidanceRetrievalHints
 import com.sarathi.app.rag.RagRepository
 import com.sarathi.app.rag.RagSearchResult
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -153,7 +154,7 @@ class ChatViewModel(
                         )
                         return@launch
                     }
-                    val retrieved = rag.search(trimmed, limit = 3)
+                    val retrieved = retrieveGuidanceContext(trimmed)
                     val engine = resolveEngine()
                     val currentPreferences = preferences.value
                     val reply = engine.generateReply(
@@ -191,6 +192,13 @@ class ChatViewModel(
             )
         }
         return offlineEngine
+    }
+
+    private suspend fun retrieveGuidanceContext(message: String): List<RagSearchResult> {
+        val hint = GuidanceRetrievalHints.forMessage(message)
+        val hintedVerses = hint.verseRefs.mapNotNull { rag.getVerse(it.chapter, it.verse) }
+        val expandedResults = rag.search(GuidanceRetrievalHints.expandedQuery(message), limit = 5)
+        return (hintedVerses + expandedResults).distinctBy { it.id }.take(5)
     }
 
     private fun hasReachableGuidance(p: UserPreferences): Boolean {

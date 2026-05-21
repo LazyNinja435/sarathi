@@ -10,9 +10,22 @@
 | Artifact | Gita docs | Mahabharata docs | Concepts | FTS rows |
 |----------|-------------|------------------|----------|----------|
 | `knowledge/indexes/sarathi_rag.sqlite` | 700 | 3929 | 15 | 4629 (`documents`) |
-| `app/src/main/assets/rag/sarathi_rag.sqlite` | same (copied on index build) | | | |
+| `app/src/main/assets/rag/sarathi_rag.sqlite` | same (generated package copy) | | | |
+| `web/apps/frontend/public/rag/sarathi_rag.json` | same source documents, JSON shape for web | | | |
 
 Total `documents` rows: **4629** (= 700 + 3929 + 0 other collections in v1).
+
+## Source-of-truth rule
+
+`knowledge/` is the single source of truth for Sarathi scripture knowledge.
+
+- Raw and processed sources live under `knowledge/sources/**`.
+- The canonical RAG index is `knowledge/indexes/sarathi_rag.sqlite`.
+- Android assets under `app/src/main/assets/rag/` are package copies.
+- Web assets under `web/apps/frontend/public/rag/` are package exports.
+- Do not hand-edit Android or web RAG assets. Rebuild the corpus or run `.\scripts\sync-rag-assets.ps1`.
+- `tools/export_web_rag_json.py` reads from `knowledge/indexes/sarathi_rag.sqlite`, not from Android assets.
+- `tools/verify_knowledge_artifacts.py` verifies Android DB/manifest hashes and web document counts against `knowledge/indexes`.
 
 ## Gita completeness
 
@@ -32,7 +45,7 @@ See `knowledge/sources/mahabharata/processed/mahabharata_validation_report.json`
 
 ## `ChatViewModel`
 
-- On send, calls `rag.search(trimmed, limit = 3)` and passes results to `ChatEngine.generateReply(..., retrievedContext = retrieved)`.
+- On send, retrieves guidance context from the bundled DB and passes results to `ChatEngine.generateReply(..., retrievedContext = retrieved)`.
 
 ## `PromptBuilder`
 

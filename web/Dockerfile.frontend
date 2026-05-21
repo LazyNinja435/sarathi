@@ -18,10 +18,11 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_SHOW_RAG_DEBUG=$VITE_SHOW_RAG_DEBUG
 COPY package*.json ./
 COPY apps/frontend/package.json apps/frontend/package.json
+COPY packages/shared-persona/package.json packages/shared-persona/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 RUN npm install
 COPY . .
-RUN npm run build -w @sarathi/shared-types && npm run build -w @sarathi/frontend
+RUN npm run build -w @sarathi/shared-types && npm run build -w @sarathi/shared-persona && npm run build -w @sarathi/frontend
 
 FROM nginx:1.27-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf

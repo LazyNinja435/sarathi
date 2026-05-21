@@ -1,11 +1,13 @@
 import cors from "@fastify/cors";
 import { buildSarathiPrompt, normalizeSarathiResponse } from "@sarathi/shared-persona";
-import type { ChatMessage, RagPassage, ShortTermMemory, UserMemory } from "@sarathi/shared-types";
-import Fastify, { type FastifyBaseLogger } from "fastify";
+import type { ChatMessage, ShortTermMemory, UserMemory } from "@sarathi/shared-types";
+import Fastify, { type FastifyBaseLogger, type FastifyReply, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { ApiEnv } from "./env.js";
 import type { AuthVerifier } from "./firebaseAdmin.js";
 import { generateSarathiResponse } from "./gemini.js";
+import type { GuestUsageStore } from "./guestUsageStore.js";
+import { searchBackendRagPassages } from "./rag.js";
 
 const providerSchema = z.enum(["gemini", "openrouter"]);
 
@@ -18,7 +20,6 @@ const chatRequestSchema = z.object({
   conversationId: z.string().min(1),
   latestUserMessage: z.string().min(1).max(8000),
   recentHistory: z.array(z.custom<ChatMessage>()).default([]),
-  ragPassages: z.array(z.custom<RagPassage>()).max(5).default([]),
   shortTermMemory: z.custom<ShortTermMemory>().optional(),
   longTermMemory: z.custom<UserMemory>().nullable().optional()
 });
@@ -29,6 +30,7 @@ export interface CreateAppOptions {
   logger?: boolean | FastifyBaseLogger;
   generateResponse?: typeof generateSarathiResponse;
   devDashboardStore?: DevDashboardStore;
+  guestUsageStore?: GuestUsageStore;
 }
 
 export interface DevDashboardUserStats {
@@ -48,6 +50,29 @@ export interface DevDashboardStats {
 
 export interface DevDashboardStore {
   readStats(): Promise<DevDashboardStats>;
+}
+
+async function requireDevDashboardAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  options: CreateAppOptions
+) {
+  const authHeader = request.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+  if (!token) {
+    reply.code(401).send({ error: "Missing Firebase ID token." });
+    return null;
+  }
+
+  const user = await options.authVerifier.verifyIdToken(token);
+  const emailAllowed = user.email ? options.env.adminEmails.includes(user.email) : false;
+  const uidAllowed = options.env.adminUids.includes(user.uid);
+  if (!emailAllowed && !uidAllowed) {
+    reply.code(403).send({ error: "Developer dashboard access denied." });
+    return null;
+  }
+
+  return user;
 }
 
 function redactApiKey(payload: unknown) {
@@ -89,29 +114,32 @@ export function createApp(options: CreateAppOptions) {
     service: "sarathi-api",
     provider: "gemini",
     model: options.env.geminiModel,
-    demoProvider: "openrouter",
-    demoModel: options.env.openRouterDemoModel
+    demoProvider: options.env.geminiDemoApiKey ? "gemini" : "openrouter",
+    demoModel: options.env.geminiDemoApiKey ? options.env.geminiModel : options.env.openRouterDemoModel,
+    demoFallbackProvider: "openrouter",
+    demoFallbackModel: options.env.openRouterDemoModel
   }));
 
   app.get("/api/devdash/stats", async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
-    if (!token) {
-      return reply.code(401).send({ error: "Missing Firebase ID token." });
-    }
-
-    const user = await options.authVerifier.verifyIdToken(token);
-    const emailAllowed = user.email ? options.env.adminEmails.includes(user.email) : false;
-    const uidAllowed = options.env.adminUids.includes(user.uid);
-    if (!emailAllowed && !uidAllowed) {
-      return reply.code(403).send({ error: "Developer dashboard access denied." });
-    }
+    const adminUser = await requireDevDashboardAdmin(request, reply, options);
+    if (!adminUser) return;
 
     if (!options.devDashboardStore) {
       return reply.code(503).send({ error: "Developer dashboard is not configured." });
     }
 
     return options.devDashboardStore.readStats();
+  });
+
+  app.get("/api/devdash/guest-stats", async (request, reply) => {
+    const adminUser = await requireDevDashboardAdmin(request, reply, options);
+    if (!adminUser) return;
+
+    if (!options.guestUsageStore) {
+      return { totalGuestMessages: 0 };
+    }
+
+    return options.guestUsageStore.readGuestStats();
   });
 
   app.post("/api/chat", async (request, reply) => {
@@ -124,10 +152,10 @@ export function createApp(options: CreateAppOptions) {
 
     const user = token ? await options.authVerifier.verifyIdToken(token) : { uid: body.demoClientId ?? request.ip, name: "friend" };
     const isDemo = body.mode === "demo";
-    const provider = isDemo ? "openrouter" : body.provider;
-    const apiKey = isDemo ? options.env.openRouterDemoApiKey : body.apiKey ?? body.geminiApiKey;
-    const model = isDemo
-      ? options.env.openRouterDemoModel
+    let provider = isDemo ? (options.env.geminiDemoApiKey ? "gemini" : "openrouter") : body.provider;
+    let apiKey = isDemo ? (options.env.geminiDemoApiKey ?? options.env.openRouterDemoApiKey) : body.apiKey ?? body.geminiApiKey;
+    let model = isDemo
+      ? (options.env.geminiDemoApiKey ? options.env.geminiModel : options.env.openRouterDemoModel)
       : provider === "openrouter"
         ? options.env.openRouterUserModel
         : options.env.geminiModel;
@@ -148,33 +176,56 @@ export function createApp(options: CreateAppOptions) {
       messagesRemaining = Math.max(0, limit - used - 1);
     }
 
+    const ragPassages = searchBackendRagPassages(body.latestUserMessage, 5);
+
     const prompt = buildSarathiPrompt({
       userName: user.name,
       latestUserMessage: body.latestUserMessage,
       recentHistory: body.recentHistory,
-      ragPassages: body.ragPassages,
+      ragPassages,
       shortTermMemory: body.shortTermMemory,
       longTermMemory: body.longTermMemory
     });
 
-    const generated = await generateResponse({
-      apiKey,
-      model,
-      provider,
-      prompt
-    });
+    let generated: Awaited<ReturnType<typeof generateResponse>>;
+    try {
+      generated = await generateResponse({
+        apiKey,
+        model,
+        provider,
+        prompt
+      });
+    } catch (error) {
+      if (!isDemo || provider !== "gemini" || !options.env.openRouterDemoApiKey) {
+        throw error;
+      }
+      provider = "openrouter";
+      apiKey = options.env.openRouterDemoApiKey;
+      model = options.env.openRouterDemoModel;
+      request.log.warn({ err: error }, "demo Gemini failed; falling back to OpenRouter");
+      generated = await generateResponse({
+        apiKey,
+        model,
+        provider,
+        prompt
+      });
+    }
+
+    if (isDemo && !token) {
+      await options.guestUsageStore?.incrementGuestMessages();
+    }
 
     return {
       assistantMessage: normalizeSarathiResponse({
         responseText: generated.text,
         userMessage: body.latestUserMessage,
-        ragPassages: body.ragPassages
+        ragPassages
       }),
       provider,
       model,
       rag: {
-        used: body.ragPassages.length > 0,
-        sources: body.ragPassages.map((passage) => passage.citation)
+        used: ragPassages.length > 0,
+        sources: ragPassages.map((passage) => passage.citation)
       },
       demo: isDemo ? { messagesRemaining, messageLimit: options.env.demoMessageLimit } : undefined,
       diagnostics: generated.usage ? { usage: generated.usage } : undefined

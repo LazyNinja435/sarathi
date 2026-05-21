@@ -12,7 +12,7 @@ import {
   setDoc,
   writeBatch
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 
 export interface DevDashboardStats {
   totalUsers: number;
@@ -76,9 +76,10 @@ export async function clearConversationHistory(uid: string, conversationId: stri
 }
 
 export async function getDevDashboardStats(): Promise<DevDashboardStats> {
-  const [profilesSnapshot, messagesSnapshot] = await Promise.all([
+  const [profilesSnapshot, messagesSnapshot, guestStats] = await Promise.all([
     getDocs(collectionGroup(db, "profile")),
-    getDocs(collectionGroup(db, "messages"))
+    getDocs(collectionGroup(db, "messages")),
+    getGuestStats()
   ]);
 
   const users = new Map<string, DevDashboardStats["users"][number]>();
@@ -111,11 +112,30 @@ export async function getDevDashboardStats(): Promise<DevDashboardStats> {
   });
 
   const userList = [...users.values()].sort((left, right) => right.messageCount - left.messageCount);
+  const allRows = [
+    ...userList,
+    {
+      uid: "guest-users",
+      displayName: "Guest Users",
+      email: "Unauthenticated demo sessions",
+      messageCount: guestStats.totalGuestMessages
+    }
+  ];
   return {
     totalUsers: userList.length,
-    totalUserMessages: userList.reduce((sum, user) => sum + user.messageCount, 0),
-    users: userList
+    totalUserMessages: allRows.reduce((sum, user) => sum + user.messageCount, 0),
+    users: allRows
   };
+}
+
+async function getGuestStats() {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) return { totalGuestMessages: 0 };
+  const response = await fetch("/api/devdash/guest-stats", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) return { totalGuestMessages: 0 };
+  return response.json() as Promise<{ totalGuestMessages: number }>;
 }
 
 function uidFromPath(path: string) {

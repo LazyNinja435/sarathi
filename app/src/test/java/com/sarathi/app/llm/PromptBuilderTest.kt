@@ -69,6 +69,36 @@ class PromptBuilderTest {
     }
 
     @Test
+    fun buildFullPrompt_rejectsIrrelevantRetrievedQuotes() {
+        val prompt = PromptBuilder.buildFullPrompt(
+            userName = "Test",
+            tone = GuidanceTone.Gentle,
+            history = emptyList(),
+            userMessage = "I failed at something",
+            retrievedContext = listOf(
+                RagSearchResult(
+                    id = "gita_01_001_besant",
+                    work = "Bhagavad Gita",
+                    collection = "gita",
+                    title = "Arjuna Vishada Yoga",
+                    citation = "Bhagavad Gita 1.1",
+                    text = "",
+                    translation = "On the holy plain, on the field of Kuru...",
+                    sanskrit = "",
+                    sourceTitle = "Sample",
+                    sourceUrl = "",
+                    themes = emptyList(),
+                    score = 1.0,
+                ),
+            ),
+        )
+
+        assertTrue(prompt.contains("The final quote must directly support the user's concern"))
+        assertTrue(prompt.contains("Do not use unrelated setup verses"))
+        assertTrue(prompt.contains("use a more relevant approved fallback Gita verse"))
+    }
+
+    @Test
     fun buildFullPrompt_includesRetrievedRagContext() {
         val rag = RagSearchResult(
             id = "gita_01_001_001",

@@ -5,6 +5,14 @@
 
 This file is the main operating manual for coding agents working on **Sarathi**. Read it before making substantive changes.
 
+**Repo-local agent materials**
+
+- `.ai/` is the local, untracked home for agent-specific materials in this repo.
+- `.ai/skills/` contains repo-local skills agents may use while working on Sarathi.
+- `.ai/agents/` is reserved for agent profiles, prompts, or role definitions.
+- `.ai/rules/` is reserved for additional local rules agents should follow.
+- Treat `.ai/` as working context only: do not commit it, and keep canonical project rules in `AGENTS.md`.
+
 ---
 
 ## 1. Project identity
@@ -194,9 +202,29 @@ RAG is **stable**; do **not** casually modify bundled corpora or rebuild assets 
 - **700** Bhagavad Gita rows.
 - **3929** Mahabharata chunks.
 
+**Knowledge source of truth**
+
+- `knowledge/` is the single source of truth for scripture / RAG knowledge.
+- Canonical DB: `knowledge/indexes/sarathi_rag.sqlite`
+- Android package copy: `app/src/main/assets/rag/sarathi_rag.sqlite`
+- Web package export: `web/apps/frontend/public/rag/sarathi_rag.json`
+- Do not hand-edit Android or web RAG artifacts; rebuild through `tools/rag-builder` or run `scripts/sync-rag-assets.ps1`.
+
 **Bundled DB path**
 
 - `app/src/main/assets/rag/sarathi_rag.sqlite`
+
+**Canonical enriched Gita JSONL**
+
+- The canonical enriched Bhagavad Gita source for all platforms is:
+  `knowledge/sources/gita/processed/gita_verses.jsonl`
+- The Raspberry Pi deployment must keep an identical copy at:
+  `/home/evolve4422/services/sarathi-web/repo/knowledge/sources/gita/processed/gita_verses.jsonl`
+- Before and after copying this file between Windows and the Pi, compare SHA-256 hashes. Example:
+  - Windows: `Get-FileHash knowledge\sources\gita\processed\gita_verses.jsonl -Algorithm SHA256`
+  - Pi: `ssh raspberry-pi "sha256sum /home/evolve4422/services/sarathi-web/repo/knowledge/sources/gita/processed/gita_verses.jsonl"`
+- If the hashes differ, do not deploy or rebuild RAG assets until the mismatch is resolved.
+- The web API should read this file server-side from the Pi/repo knowledge tree. Do not reintroduce browser-shipped RAG JSON for web chat.
 
 **Prompting**
 
@@ -374,15 +402,16 @@ When changing UI:
 **Before changing code**
 
 1. Read **AGENTS.md** (this file).
-2. Check **`git status`**.
-3. Classify the task: **UI**, **LLM runtime**, **RAG**, **release/update**, **model download**, **tests/docs**, or a narrow combination.
-4. Avoid **broad refactors** unless explicitly requested.
-5. Make **targeted** changes aligned with existing patterns.
-6. Preserve **practice mode**, **LiteRT**, **RAG**, and **release scripts** unless the task explicitly changes them.
-7. Run the **relevant** Gradle build and/or tests.
-8. Update **docs** or internal reports when **behavior** or **release contracts** change.
-9. **Never** claim Gemma works on device unless logs show **LiteRT-LM load** and **generation** success.
-10. **Never** claim a GitHub release “works” unless assets are **actually published** and **smoke-tested** as appropriate.
+2. Check `.ai/skills/`, `.ai/rules/`, and `.ai/agents/` for any local agent materials relevant to the task.
+3. Check **`git status`**.
+4. Classify the task: **UI**, **LLM runtime**, **RAG**, **release/update**, **model download**, **tests/docs**, or a narrow combination.
+5. Avoid **broad refactors** unless explicitly requested.
+6. Make **targeted** changes aligned with existing patterns.
+7. Preserve **practice mode**, **LiteRT**, **RAG**, and **release scripts** unless the task explicitly changes them.
+8. Run the **relevant** Gradle build and/or tests.
+9. Update **docs** or internal reports when **behavior** or **release contracts** change.
+10. **Never** claim Gemma works on device unless logs show **LiteRT-LM load** and **generation** success.
+11. **Never** claim a GitHub release “works” unless assets are **actually published** and **smoke-tested** as appropriate.
 
 ---
 
