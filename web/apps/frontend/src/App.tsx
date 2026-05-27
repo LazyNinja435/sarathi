@@ -4,7 +4,7 @@ import { KeyRound, LogIn, LogOut, MessageCircle, Send, Settings, Trash2 } from "
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "./firebase";
-import { clearConversationHistory, ensureUserDefaults, getDevDashboardStats, getUserMemory, saveConversationMessage, saveUserMemory, type DevDashboardStats } from "./firestore";
+import { ensureUserDefaults, getDevDashboardStats, getUserMemory, saveConversationMessage, saveUserMemory, type DevDashboardStats } from "./firestore";
 import {
   clearGeminiApiKey,
   clearOpenRouterApiKey,
@@ -230,8 +230,7 @@ function Chat({ user }: { user: User | null }) {
             <p className="eyebrow">{apiMode === "demo" || !user ? "Demo guidance through Google AI Studio" : `Using your ${provider === "gemini" ? "Google AI Studio" : "OpenRouter"} key`}</p>
             <h2>What rests upon your heart?</h2>
           </div>
-          <button className="ghost" onClick={async () => {
-            if (user) await clearConversationHistory(user.uid, conversationId);
+          <button className="ghost" onClick={() => {
             setMessages([]);
           }}><Trash2 size={17} /> Clear</button>
         </div>

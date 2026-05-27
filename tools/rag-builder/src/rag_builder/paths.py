@@ -11,7 +11,7 @@ def repo_root() -> Path:
 
 
 def knowledge_root() -> Path:
-    return repo_root() / "knowledge"
+    return repo_root() / "shared" / "knowledge"
 
 
 def rag_builder_root() -> Path:
@@ -43,7 +43,7 @@ def mahabharata_processed_dir() -> Path:
 
 
 def android_rag_assets_dir() -> Path:
-    return repo_root() / "app" / "src" / "main" / "assets" / "rag"
+    return repo_root() / "android" / "app" / "src" / "main" / "assets" / "rag"
 
 
 def load_yaml(name: str) -> dict:

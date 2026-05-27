@@ -10,7 +10,7 @@
 *.tflite
 *.litertlm
 models/
-app/src/main/assets/models/
+android/app/src/main/assets/models/
 local-models/
 dist/
 node_modules/
@@ -21,9 +21,9 @@ web/**/.env
 !web/.env.example
 web/firebase-debug.log
 web/.firebase/
-verification/*.log
-verification/*logcat*.txt
-verification/gemma_mediapipe_logcat.txt
+android/verification/*.log
+android/verification/*logcat*.txt
+android/verification/gemma_mediapipe_logcat.txt
 __pycache__/
 *.pyc
 /.idea
@@ -45,4 +45,4 @@ captures
 signing.properties
 release-secrets/
 .github/tmp/
-knowledge/sources/archive/
+shared/knowledge/sources/archive/

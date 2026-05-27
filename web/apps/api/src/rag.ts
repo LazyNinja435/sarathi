@@ -72,8 +72,13 @@ function repoRootCandidates() {
 
 function resolveKnowledgeFile() {
   for (const root of repoRootCandidates()) {
-    const candidate = join(root, "knowledge", "sources", "gita", "processed", "gita_verses.jsonl");
-    if (existsSync(candidate)) return candidate;
+    const candidates = [
+      join(root, "knowledge", "sources", "gita", "processed", "gita_verses.jsonl"),
+      join(root, "shared", "knowledge", "sources", "gita", "processed", "gita_verses.jsonl")
+    ];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate;
+    }
   }
   throw new Error("Canonical Gita knowledge file not found.");
 }

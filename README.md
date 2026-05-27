@@ -1,6 +1,11 @@
 # Sarathi
 
-**Sarathi** (charioteer) is a native Android, offline-first spiritual companion app rooted in Bhagavad Gita wisdom. It is built with **Kotlin**, **Jetpack Compose**, and **Material 3**. The UI is calm, devotional, and premium—midnight indigo, sacred gold, and parchment tones.
+**Sarathi** (charioteer) is an offline-first spiritual companion rooted in Bhagavad Gita wisdom, available as a **native Android app** and a **web companion**.
+
+- **Android:** Kotlin, Jetpack Compose, Material 3 — on-device Gemma 4 via LiteRT-LM.
+- **Web:** React + TypeScript frontend, Fastify API, Firebase Auth — Gemini / OpenRouter cloud inference.
+
+The UI is calm, devotional, and premium—midnight indigo, sacred gold, and parchment tones.
 
 ## Requirements
 
@@ -31,7 +36,7 @@
 
 Debug APK output:
 
-`app\build\outputs\apk\debug\app-debug.apk`
+`android\app\build\outputs\apk\debug\app-debug.apk`
 
 ## Install / update from GitHub Releases
 
@@ -41,13 +46,13 @@ Official repo: https://github.com/LazyNinja435/sarathi
 - **Check for app updates**: **Settings → Update Sarathi → Check for updates** (downloads `sarathi-latest.json`, compares `versionCode`, then optionally downloads a verified APK — still requires Android’s installer prompt).
 - **Download the offline Gemma model**: **Settings → Download offline model** (chunked download from release assets into **app-private** `files/models/`).
 
-See **`docs/GITHUB_RELEASE_DISTRIBUTION.md`** and **`docs/IN_APP_UPDATES.md`** for maintainer packaging (`dist/github-release/`) and troubleshooting.
+See **`android/docs/GITHUB_RELEASE_DISTRIBUTION.md`** and **`android/docs/IN_APP_UPDATES.md`** for maintainer packaging (`dist/github-release/`) and troubleshooting.
 
 ## Release APK (signed, maintainer)
 
 ```powershell
-# After exporting SARATHI_KEYSTORE_* env vars — see docs/ANDROID_RELEASE_SIGNING.md
-.\scripts\build-release-apk.ps1
+# After exporting SARATHI_KEYSTORE_* env vars — see android/docs/ANDROID_RELEASE_SIGNING.md
+.\android\scripts\build-release-apk.ps1
 ```
 
 Release APK is copied to:
@@ -65,6 +70,19 @@ Release APK is copied to:
 
 (Requires `adb` on PATH and an authorized device.)
 
+## Web companion
+
+A browser-based Sarathi experience lives alongside the Android app in this repository.
+
+- **Frontend:** `web/apps/frontend` — React, Vite, TypeScript.
+- **API:** `web/apps/api` — Fastify, TypeScript, Firebase Auth.
+- **Shared packages:** prompt contract, types, and config shared across Android and web.
+- **Providers:** Gemini (Google AI Studio) and OpenRouter.
+- **Modes:** Demo (server key) or bring-your-own API key.
+- **Deployment:** Docker Compose + Raspberry Pi (see `web/docs/PI_DEPLOYMENT.md`).
+
+See **`web/README.md`** for local setup, shared prompt contract regeneration, and brand asset sync.
+
 ## Mock mode (default)
 
 The app runs fully **without internet** using **MockKrishnaChatEngine**: short, keyword-aware responses in the Sarathi voice. This mode is always available and is used when:
@@ -74,9 +92,9 @@ The app runs fully **without internet** using **MockKrishnaChatEngine**: short, 
 
 ## Offline RAG (SQLite FTS5)
 
-- Source of truth: **`knowledge/`**.
-- Canonical database: **`knowledge/indexes/sarathi_rag.sqlite`**.
-- Android package copy: **`app/src/main/assets/rag/sarathi_rag.sqlite`**.
+- Source of truth: **`shared/knowledge/`**.
+- Canonical database: **`shared/knowledge/indexes/sarathi_rag.sqlite`**.
+- Android package copy: **`android/app/src/main/assets/rag/sarathi_rag.sqlite`**.
 - Web package export: **`web/apps/frontend/public/rag/sarathi_rag.json`**.
 - v1 retrieval uses **SQLite FTS5** keyword search with BM25 ranking — **no embeddings** in the app bundle yet.
 - Rebuild the corpus and copy fresh assets:
@@ -88,27 +106,27 @@ pip install -r tools\rag-builder\requirements.txt
 python tools\rag-builder\scripts\build_all.py --download --normalize --index
 ```
 
-To refresh Android and web package artifacts from `knowledge/indexes` without rebuilding:
+To refresh Android and web package artifacts from `shared/knowledge/indexes` without rebuilding:
 
 ```powershell
-.\scripts\sync-rag-assets.ps1
+.\android\scripts\sync-rag-assets.ps1
 ```
 
-See **`docs/RAG_INTEGRATION.md`** for how `ChatViewModel`, `PromptBuilder`, and `VerseRepository` use RAG.
+See **`android/docs/RAG_INTEGRATION.md`** for how `ChatViewModel`, `PromptBuilder`, and `VerseRepository` use RAG.
 
 ## Emulator note
 
-Smoke testing on **Pixel_9_Pro API 36** has been used for this repo; see **`docs/ANDROID_DEV_SETUP.md`** for `JAVA_HOME`, adb, and Gradle-on-Windows notes (including `kotlin.incremental=false` and avoiding unnecessary `clean`).
+Smoke testing on **Pixel_9_Pro API 36** has been used for this repo; see **`android/docs/ANDROID_DEV_SETUP.md`** for `JAVA_HOME`, adb, and Gradle-on-Windows notes (including `kotlin.incremental=false` and avoiding unnecessary `clean`).
 
 ## On-device model (MediaPipe + Gemma `.task`)
 
 When a compatible Gemma-family `.task` bundle is present, the app can use **MediaPipe LLM Inference** (`com.google.mediapipe:tasks-genai`) via `MediaPipeGemmaChatEngine`. Model files are **not** bundled in the repo (size + licensing).
 
-See **[docs/MODEL_SETUP.md](docs/MODEL_SETUP.md)** for manual download, placement paths, and troubleshooting.
+See **[android/docs/MODEL_SETUP.md](android/docs/MODEL_SETUP.md)** for manual download, placement paths, and troubleshooting.
 
 ## Future: iOS
 
-This repository is Android-only. A future iOS version could mirror flows with SwiftUI and an on-device inference stack appropriate for Apple platforms.
+A future iOS version could mirror flows with SwiftUI and an on-device inference stack appropriate for Apple platforms.
 
 ## License
 

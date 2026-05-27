@@ -12,7 +12,7 @@ services:
       - "127.0.0.1:3411:3001"
     volumes:
       - ./data/api:/data
-      - ../knowledge:/app/knowledge:ro
+      - ../shared/knowledge:/app/knowledge:ro
     restart: unless-stopped
 
   frontend:

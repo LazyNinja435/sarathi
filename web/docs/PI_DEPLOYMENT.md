@@ -40,13 +40,13 @@ The Pi `.env` contains only Firebase public web config and backend non-secret se
 
 The API container reads the canonical enriched Gita JSONL from the Pi repo checkout through a read-only Docker volume:
 
-`/home/evolve4422/services/sarathi-web/repo/knowledge/sources/gita/processed/gita_verses.jsonl`
+`/home/evolve4422/services/sarathi-web/repo/shared/knowledge/sources/gita/processed/gita_verses.jsonl`
 
-The compose file mounts `../knowledge` to `/app/knowledge` and sets `SARATHI_KNOWLEDGE_ROOT=/app`, so the API does not depend on a Windows development machine at runtime.
+The compose file mounts `../shared/knowledge` to `/app/knowledge` and sets `SARATHI_KNOWLEDGE_ROOT=/app`, so the API does not depend on a Windows development machine at runtime.
 
-Whenever `knowledge/sources/gita/processed/gita_verses.jsonl` changes on Windows, copy it to the same path in the Pi repo and compare SHA-256 hashes before deployment:
+Whenever `shared/knowledge/sources/gita/processed/gita_verses.jsonl` changes on Windows, copy it to the same path in the Pi repo and compare SHA-256 hashes before deployment:
 
 ```powershell
-Get-FileHash knowledge\sources\gita\processed\gita_verses.jsonl -Algorithm SHA256
-ssh raspberry-pi "sha256sum /home/evolve4422/services/sarathi-web/repo/knowledge/sources/gita/processed/gita_verses.jsonl"
+Get-FileHash shared\knowledge\sources\gita\processed\gita_verses.jsonl -Algorithm SHA256
+ssh raspberry-pi "sha256sum /home/evolve4422/services/sarathi-web/repo/shared/knowledge/sources/gita/processed/gita_verses.jsonl"
 ```

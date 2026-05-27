@@ -77,7 +77,7 @@ export const SARATHI_PERSONA = [
 `;
 
 fs.writeFileSync(
-  path.join(repoRoot, "app", "src", "main", "java", "com", "sarathi", "app", "llm", "SarathiPromptContract.kt"),
+  path.join(repoRoot, "android", "app", "src", "main", "java", "com", "sarathi", "app", "llm", "SarathiPromptContract.kt"),
   kotlin,
 );
 fs.writeFileSync(

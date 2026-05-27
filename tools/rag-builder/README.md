@@ -21,8 +21,8 @@ python tools\rag-builder\scripts\build_all.py --download --normalize --index
 
 Place inputs under:
 
-- `knowledge/sources/gita/raw/besant_wikisource/discourse_01.html` … `discourse_18.html` (optional cache; builder can refetch)
-- `knowledge/sources/mahabharata/raw/ganguli_aasi/maha01.txt` … `maha18.txt`
+- `shared/knowledge/sources/gita/raw/besant_wikisource/discourse_01.html` … `discourse_18.html` (optional cache; builder can refetch)
+- `shared/knowledge/sources/mahabharata/raw/ganguli_aasi/maha01.txt` … `maha18.txt`
 
 Then:
 
@@ -36,17 +36,17 @@ If normalization cannot find raw files, the builder prints **clear errors**, wri
 
 | Output | Path |
 |--------|------|
-| Gita JSONL | `knowledge/sources/gita/processed/gita_verses.jsonl` |
-| Mahabharata JSONL | `knowledge/sources/mahabharata/processed/mahabharata_chunks.jsonl` |
-| Canonical SQLite | `knowledge/indexes/sarathi_rag.sqlite` |
-| Android package copy | `app/src/main/assets/rag/sarathi_rag.sqlite` |
+| Gita JSONL | `shared/knowledge/sources/gita/processed/gita_verses.jsonl` |
+| Mahabharata JSONL | `shared/knowledge/sources/mahabharata/processed/mahabharata_chunks.jsonl` |
+| Canonical SQLite | `shared/knowledge/indexes/sarathi_rag.sqlite` |
+| Android package copy | `android/app/src/main/assets/rag/sarathi_rag.sqlite` |
 | Web package JSON | `web/apps/frontend/public/rag/sarathi_rag.json` |
-| Manifests | `knowledge/indexes/sarathi_rag_manifest.json`, `build_report.json` |
+| Manifests | `shared/knowledge/indexes/sarathi_rag_manifest.json`, `build_report.json` |
 
-`knowledge/` is the source of truth. Android and web artifacts are generated package copies. To refresh package artifacts without rebuilding the corpus:
+`shared/knowledge/` is the source of truth. Android and web artifacts are generated package copies. To refresh package artifacts without rebuilding the corpus:
 
 ```powershell
-.\scripts\sync-rag-assets.ps1
+.\android\scripts\sync-rag-assets.ps1
 ```
 
 ## Troubleshooting

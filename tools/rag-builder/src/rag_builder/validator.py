@@ -84,7 +84,7 @@ def validate_corpus() -> dict[str, Any]:
         finally:
             con.close()
     else:
-        warnings.append("sarathi_rag.sqlite not found under knowledge/indexes/")
+        warnings.append("sarathi_rag.sqlite not found under shared/knowledge/indexes/")
 
     return {
         "ok": len(errors) == 0,

@@ -3,7 +3,7 @@ from PIL import Image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DRAWABLES = REPO_ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
+DRAWABLES = REPO_ROOT / "android" / "app" / "src" / "main" / "res" / "drawable-nodpi"
 OUT = REPO_ROOT / "shared" / "brand" / "sarathi-logo.png"
 
 

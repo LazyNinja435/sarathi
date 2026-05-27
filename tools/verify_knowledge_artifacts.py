@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-KNOWLEDGE_INDEX_DIR = REPO_ROOT / "knowledge" / "indexes"
-ANDROID_RAG_DIR = REPO_ROOT / "app" / "src" / "main" / "assets" / "rag"
+KNOWLEDGE_INDEX_DIR = REPO_ROOT / "shared" / "knowledge" / "indexes"
+ANDROID_RAG_DIR = REPO_ROOT / "android" / "app" / "src" / "main" / "assets" / "rag"
 
 
 def sha256(path: Path) -> str:
