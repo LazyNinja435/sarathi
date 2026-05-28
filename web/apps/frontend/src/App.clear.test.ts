@@ -12,8 +12,16 @@ describe("chat clear behavior", () => {
 });
 
 describe("server-managed chat UI", () => {
+  function readUiSources() {
+    return [
+      readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8"),
+      readFileSync(fileURLToPath(new URL("./components/sarathi/SarathiChatPanel.tsx", import.meta.url)), "utf8"),
+      readFileSync(fileURLToPath(new URL("./sarathiDesigns.tsx", import.meta.url)), "utf8"),
+    ].join("\n");
+  }
+
   it("does not expose provider API key controls", () => {
-    const source = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+    const source = readUiSources();
 
     expect(source).not.toContain("Use My Key");
     expect(source).not.toContain("Get Free Key");
@@ -23,9 +31,73 @@ describe("server-managed chat UI", () => {
   });
 
   it("shows dismissible sign-in personalization copy", () => {
-    const source = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+    const source = readUiSources();
 
     expect(source).toContain("Sign in to make Sarathi remember what matters to you.");
     expect(source).toContain("Dismiss sign-in reminder");
+  });
+
+  it("registers the focused Sarathi mock design route", () => {
+    const source = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+
+    expect(source).toContain('/mock/sarathi-designs');
+    expect(source).toContain('/mock/sarathi-design-2');
+    expect(source).toContain('/mock/sarathi-design-2-signed-in');
+  });
+
+  it("focuses old mock routes onto Design 2 and hides empty references", () => {
+    const source = readUiSources();
+
+    expect(source).toContain("SarathiChatPanel");
+    expect(source).toContain('<Navigate to="/mock/sarathi-design-2" replace />');
+    expect(source).toContain("Your Sacred Memory");
+    expect(source).toContain("Clarify Your Soul");
+    expect(source).not.toContain("Continue as guest</a>");
+    expect(source).not.toContain("<span>N/A</span>");
+  });
+
+  it("keeps production chat presentation outside the mock design module", () => {
+    const appSource = readFileSync(fileURLToPath(new URL("./App.tsx", import.meta.url)), "utf8");
+    const productionChatSource = readFileSync(fileURLToPath(new URL("./components/sarathi/SarathiChatPanel.tsx", import.meta.url)), "utf8");
+
+    expect(appSource).toContain('from "./components/sarathi/SarathiChatPanel"');
+    expect(appSource).toContain('from "./sarathiDesigns"');
+    expect(productionChatSource).toContain("type SarathiChatPanelProps");
+    expect(productionChatSource).toContain("references.length > 0");
+    expect(productionChatSource).toContain("Your Sacred Memory");
+  });
+});
+
+describe("local Firebase bootstrap", () => {
+  it("has non-secret local fallback values so mock routes can render without env files", () => {
+    const source = readFileSync(fileURLToPath(new URL("./firebase.ts", import.meta.url)), "utf8");
+
+    expect(source).toContain("sarathi-local-api-key");
+    expect(source).toContain("sarathi-local.firebaseapp.com");
+  });
+});
+
+describe("Clarify Your Soul mock settings", () => {
+  it("defines Sarathi-specific soul memory sections and future schema shape", () => {
+    const source = readFileSync(fileURLToPath(new URL("./SoulMemorySettings.tsx", import.meta.url)), "utf8");
+
+    expect(source).toContain("type SoulMemorySectionKey");
+    expect(source).toContain('schema: "sarathi.memory.v1"');
+    expect(source).toContain("Clarify Your Soul");
+    expect(source).toContain("My Journey");
+    expect(source).toContain("Questions I Return To");
+    expect(source).toContain("Guidance That Helped Me");
+    expect(source).toContain("Practices I");
+    expect(source).toContain("Personal Reflections");
+    expect(source).toContain("Life Context");
+  });
+
+  it("does not add generic assistant memory or deity preference controls", () => {
+    const source = readFileSync(fileURLToPath(new URL("./SoulMemorySettings.tsx", import.meta.url)), "utf8");
+
+    expect(source).not.toContain("response style");
+    expect(source).not.toContain("spiritual preference");
+    expect(source).not.toContain("deity");
+    expect(source).not.toContain("personality");
   });
 });

@@ -1,10 +1,19 @@
 import { createDefaultUserMemory, type ChatMessage, type ShortTermMemory } from "@sarathi/shared-types";
 import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from "firebase/auth";
-import { LogIn, LogOut, MessageCircle, Send, Settings, Trash2, X } from "lucide-react";
+import { LogIn, LogOut, MessageCircle, Settings, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "./firebase";
 import { ensureUserDefaults, getDevDashboardStats, getUserMemory, saveConversationMessage, saveUserMemory, type DevDashboardStats } from "./firestore";
+import { SarathiChatPanel } from "./components/sarathi/SarathiChatPanel";
+import { SoulMemorySettings } from "./SoulMemorySettings";
+import {
+  MockDesignIndex,
+  SarathiDesignOnePage,
+  SarathiDesignThreePage,
+  SarathiDesignTwoPage,
+  SarathiDesignTwoSignedInPage,
+} from "./sarathiDesigns";
 import {
   dismissSignInPersonalizationBanner,
   getDemoClientId,
@@ -180,79 +189,28 @@ function Chat({ user }: { user: User | null }) {
   }
 
   return (
-    <section className="chat-layout">
-      <div className="chat-panel">
-        <div className="chat-heading">
-          <div>
-            <p className="eyebrow">Sarathi online guidance</p>
-            <h2>What rests upon your heart?</h2>
-          </div>
-          <button className="ghost" onClick={() => {
-            setMessages([]);
-          }}><Trash2 size={17} /> Clear</button>
-        </div>
-        <div className="messages">
-          {messages.length === 0 && (
-            <>
-              <div className="starter-prompts" aria-label="Suggested first messages">
-                {starterPrompts.map((prompt) => (
-                  <button key={prompt} onClick={() => sendMessage(prompt)} disabled={busy}>
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-              <article className="message assistant welcome-message">{welcomeMessage}</article>
-            </>
-          )}
-          {messages.map((message) => (
-            <article className={`message ${message.role}`} key={message.id}>
-              {message.text}
-            </article>
-          ))}
-          {busy && <article className="message assistant">The charioteer is reflecting...</article>}
-        </div>
-        {error && <p className="error">{error}</p>}
-        {!user && !signInBannerDismissed && (
-          <div className="demo-banner personalization-banner">
-            <span className="banner-text">Sign in to make Sarathi remember what matters to you.</span>
-            <button className="banner-btn" onClick={() => signInWithGoogle(navigate)}>Sign in</button>
-            <button
-              className="icon-dismiss"
-              aria-label="Dismiss sign-in reminder"
-              onClick={() => {
-                dismissSignInPersonalizationBanner();
-                setSignInBannerDismissed(true);
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        <div className="references-panel">
-          <strong>References:</strong>
-          {ragDebug.sources.length > 0 ? (
-            <ul>
-              {ragDebug.sources.map((source) => <li key={source}>{source}</li>)}
-            </ul>
-          ) : (
-            <span>N/A</span>
-          )}
-        </div>
-        <div className="composer">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder="What rests upon your heart?"
-          />
-          <button onClick={() => sendMessage()} disabled={busy || !input.trim()}><Send size={18} /></button>
-        </div>
-      </div>
+    <section className="production-chat-layout">
+      <SarathiChatPanel
+        messages={messages}
+        prompts={starterPrompts}
+        welcomeMessage={welcomeMessage}
+        input={input}
+        busy={busy}
+        error={error}
+        references={ragDebug.sources}
+        showMemoryCard={!user && !signInBannerDismissed}
+        signedIn={Boolean(user)}
+        composerPlaceholder="Share what rests upon your heart..."
+        onPrompt={sendMessage}
+        onClear={() => setMessages([])}
+        onInputChange={setInput}
+        onSubmit={() => sendMessage()}
+        onSignIn={() => signInWithGoogle(navigate)}
+        onDismissMemory={() => {
+          dismissSignInPersonalizationBanner();
+          setSignInBannerDismissed(true);
+        }}
+      />
     </section>
   );
 }
@@ -306,26 +264,29 @@ function SettingsPage({ user }: { user: User | null }) {
   const [authError, setAuthError] = useState("");
 
   return (
-    <section className="settings-grid">
-      <div className="settings-panel">
-        <p className="eyebrow">Memory</p>
-        <h2>Personal guidance</h2>
-        <p className="settings-note">
-          Sign in to let Sarathi keep a gentle memory file for your preferences and notes you explicitly ask it to remember.
-        </p>
-        {user ? (
-          <button className="ghost danger" onClick={async () => {
-            await saveUserMemory(user.uid, createDefaultUserMemory());
-          }}><Trash2 size={17} /> Clear long-term memory</button>
-        ) : (
-          <>
-            <button className="primary-action small" onClick={() => signInWithGoogle(navigate, setAuthError)}>
-              <LogIn size={17} /> Sign in for personal memory
-            </button>
-            {authError && <p className="error inline-error">{authError}</p>}
-          </>
-        )}
+    <section className="settings-page">
+      <div className="settings-grid">
+        <div className="settings-panel">
+          <p className="eyebrow">Memory</p>
+          <h2>Personal guidance</h2>
+          <p className="settings-note">
+            Sign in to let Sarathi keep a gentle memory file for notes you explicitly ask it to remember.
+          </p>
+          {user ? (
+            <button className="ghost danger" onClick={async () => {
+              await saveUserMemory(user.uid, createDefaultUserMemory());
+            }}><Trash2 size={17} /> Clear long-term memory</button>
+          ) : (
+            <>
+              <button className="primary-action small" onClick={() => signInWithGoogle(navigate, setAuthError)}>
+                <LogIn size={17} /> Sign in for personal memory
+              </button>
+              {authError && <p className="error inline-error">{authError}</p>}
+            </>
+          )}
+        </div>
       </div>
+      <SoulMemorySettings />
     </section>
   );
 }
@@ -476,6 +437,11 @@ export function App() {
 
   return (
     <Routes>
+      <Route path="/mock/sarathi-designs" element={<MockDesignIndex />} />
+      <Route path="/mock/sarathi-design-1" element={<SarathiDesignOnePage />} />
+      <Route path="/mock/sarathi-design-2" element={<SarathiDesignTwoPage />} />
+      <Route path="/mock/sarathi-design-2-signed-in" element={<SarathiDesignTwoSignedInPage />} />
+      <Route path="/mock/sarathi-design-3" element={<SarathiDesignThreePage />} />
       <Route path="/" element={<Landing user={user} onContinueAsGuest={() => {
         setIsGuest(true);
         saveGuestSession(true);
