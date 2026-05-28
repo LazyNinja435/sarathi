@@ -285,6 +285,9 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+.demo-banner .banner-text {
+  flex-grow: 1;
+}
 .demo-banner button.banner-btn {
   border: 1px solid rgba(18, 13, 8, 0.2);
   border-radius: 6px;
