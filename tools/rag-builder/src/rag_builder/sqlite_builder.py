@@ -241,15 +241,35 @@ def _normalize_gita_row(o: dict[str, Any]) -> dict[str, Any]:
         + retrieval.get("intent_matches", [])
         + retrieval.get("spiritual_concepts", [])
     )
+
+    # Infer chapter, verse, and citation from record id (e.g. BG-1-1 -> chapter=1, verse=1, citation='Bhagavad Gita 1.1')
+    chapter = source.get("chapter")
+    verse = source.get("verse")
+    citation = source.get("citation")
+
+    if (chapter is None or verse is None or citation is None) and o["id"].startswith("BG-"):
+        parts = o["id"].split("-")
+        if len(parts) == 3:
+            if chapter is None:
+                chapter = int(parts[1])
+            if verse is None:
+                verse = int(parts[2])
+            if citation is None:
+                citation = f"Bhagavad Gita {parts[1]}.{parts[2]}"
+
+    chapter = chapter or 1
+    verse = verse or 1
+    citation = citation or o["id"]
+
     return {
         "id": o["id"],
         "collection": "gita",
-        "work": source.get("text", "Bhagavad Gita"),
-        "chapter": int(source["chapter"]),
-        "verse": int(source["verse"]),
-        "citation": source["citation"],
+        "work": source.get("text") or "Bhagavad Gita",
+        "chapter": chapter,
+        "verse": verse,
+        "citation": citation,
         "chapter_title": source.get("chapter_title", ""),
-        "source_id": source.get("source_id", ""),
+        "source_id": source.get("source_id") or "besant_wikisource_1922",
         "language": o.get("metadata", {}).get("language", "en"),
         "sanskrit": content.get("sanskrit", ""),
         "transliteration": content.get("transliteration", ""),

@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url";
 interface EnrichedGitaRecord {
   id: string;
   source: {
-    text: string;
-    chapter: number;
-    verse: number;
-    citation: string;
+    text?: string;
+    chapter?: number;
+    verse?: number;
+    citation?: string;
     chapter_title?: string;
     source_title?: string;
     source_url?: string;
@@ -94,8 +94,18 @@ function loadRecords() {
 }
 
 function scoreRecord(record: EnrichedGitaRecord, queryTokens: string[]) {
+  // Infer citation from id if missing (e.g. BG-1-1 -> Bhagavad Gita 1.1)
+  let citation = record.source.citation;
+  if (!citation && record.id.startsWith("BG-")) {
+    const parts = record.id.split("-");
+    if (parts.length === 3) {
+      citation = `Bhagavad Gita ${parts[1]}.${parts[2]}`;
+    }
+  }
+  citation = citation || record.id;
+
   const searchable = normalize([
-    record.source.citation,
+    citation,
     record.source.chapter_title ?? "",
     record.content.translation,
     record.rag.search_text,
@@ -108,23 +118,32 @@ function scoreRecord(record: EnrichedGitaRecord, queryTokens: string[]) {
     if (searchable.includes(token)) lexicalScore += 1;
     if (normalize(record.retrieval.primary_topics.join(" ")).includes(token)) lexicalScore += 2;
     if (normalize(record.retrieval.user_prompt_keywords.join(" ")).includes(token)) lexicalScore += 3;
-    if (normalize(record.source.citation).includes(token)) lexicalScore += 4;
+    if (normalize(citation).includes(token)) lexicalScore += 4;
   }
   return lexicalScore + record.rag.priority_score * 4 + record.rag.confidence;
 }
 
 function toPassage(record: EnrichedGitaRecord, score: number): RagPassage {
+  let citation = record.source.citation;
+  if (!citation && record.id.startsWith("BG-")) {
+    const parts = record.id.split("-");
+    if (parts.length === 3) {
+      citation = `Bhagavad Gita ${parts[1]}.${parts[2]}`;
+    }
+  }
+  citation = citation || record.id;
+
   return {
     id: record.id,
     collection: "gita",
     work: "Bhagavad Gita",
-    title: record.source.citation,
-    citation: record.source.citation,
+    title: citation,
+    citation: citation,
     text: record.content.translation,
     translation: record.content.translation,
     themes: [...record.retrieval.primary_topics, ...record.retrieval.intent_matches],
-    sourceTitle: record.source.source_title,
-    sourceUrl: record.source.source_url,
+    sourceTitle: record.source.source_title ?? "Bhagavad-Gita (Besant 4th edition, 1922)",
+    sourceUrl: record.source.source_url ?? "https://en.wikisource.org/wiki/Bhagavad-Gita_(Besant_4th)",
     score
   };
 }

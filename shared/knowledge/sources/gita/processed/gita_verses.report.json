@@ -1,0 +1,336 @@
+{
+  "total_verses": 700,
+  "raw_verses": 700,
+  "average_priority_score": 0.5967,
+  "chapter_1_average_priority_score": 0.3196,
+  "count_by_interpretation_risk": {
+    "low": 279,
+    "medium": 421
+  },
+  "count_by_intent_matches": {
+    "clarity": 136,
+    "grief_support": 40,
+    "moral_guidance": 51,
+    "duty": 196,
+    "wisdom": 316,
+    "anxiety_relief": 73,
+    "detachment": 153,
+    "comfort": 22,
+    "action_guidance": 154,
+    "self_control": 135,
+    "discipline": 80,
+    "devotion": 198,
+    "liberation": 116,
+    "courage": 19,
+    "motivation": 2,
+    "anger_management": 79,
+    "meditation": 47,
+    "faith": 142,
+    "surrender": 30,
+    "humility": 1
+  },
+  "top_20_highest_priority_verses": [
+    {
+      "id": "BG-2-47",
+      "citation": "Bhagavad Gita 2.47",
+      "priority_score": 0.98,
+      "primary_topics": [
+        "action",
+        "detachment",
+        "duty"
+      ],
+      "intent_matches": [
+        "action_guidance",
+        "duty",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-2-48",
+      "citation": "Bhagavad Gita 2.48",
+      "priority_score": 0.94,
+      "primary_topics": [
+        "action",
+        "detachment",
+        "duty"
+      ],
+      "intent_matches": [
+        "action_guidance",
+        "duty",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-6-26",
+      "citation": "Bhagavad Gita 6.26",
+      "priority_score": 0.93,
+      "primary_topics": [
+        "self-control",
+        "meditation",
+        "discipline"
+      ],
+      "intent_matches": [
+        "self_control",
+        "discipline",
+        "meditation"
+      ]
+    },
+    {
+      "id": "BG-2-14",
+      "citation": "Bhagavad Gita 2.14",
+      "priority_score": 0.92,
+      "primary_topics": [
+        "courage",
+        "equanimity"
+      ],
+      "intent_matches": [
+        "courage",
+        "motivation",
+        "anxiety_relief"
+      ]
+    },
+    {
+      "id": "BG-18-66",
+      "citation": "Bhagavad Gita 18.66",
+      "priority_score": 0.91,
+      "primary_topics": [
+        "surrender",
+        "devotion"
+      ],
+      "intent_matches": [
+        "surrender",
+        "faith",
+        "devotion"
+      ]
+    },
+    {
+      "id": "BG-6-5",
+      "citation": "Bhagavad Gita 6.5",
+      "priority_score": 0.9,
+      "primary_topics": [
+        "discipline",
+        "courage"
+      ],
+      "intent_matches": [
+        "discipline",
+        "motivation",
+        "courage"
+      ]
+    },
+    {
+      "id": "BG-9-22",
+      "citation": "Bhagavad Gita 9.22",
+      "priority_score": 0.9,
+      "primary_topics": [
+        "devotion",
+        "faith",
+        "surrender"
+      ],
+      "intent_matches": [
+        "devotion",
+        "faith",
+        "surrender"
+      ]
+    },
+    {
+      "id": "BG-12-13",
+      "citation": "Bhagavad Gita 12.13",
+      "priority_score": 0.9,
+      "primary_topics": [
+        "anger",
+        "desire",
+        "equanimity"
+      ],
+      "intent_matches": [
+        "anger_management",
+        "self_control",
+        "anxiety_relief"
+      ]
+    },
+    {
+      "id": "BG-12-14",
+      "citation": "Bhagavad Gita 12.14",
+      "priority_score": 0.9,
+      "primary_topics": [
+        "knowledge",
+        "liberation",
+        "devotion"
+      ],
+      "intent_matches": [
+        "wisdom",
+        "clarity",
+        "liberation"
+      ]
+    },
+    {
+      "id": "BG-2-11",
+      "citation": "Bhagavad Gita 2.11",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "knowledge",
+        "liberation",
+        "wisdom"
+      ],
+      "intent_matches": [
+        "wisdom",
+        "clarity",
+        "liberation"
+      ]
+    },
+    {
+      "id": "BG-2-13",
+      "citation": "Bhagavad Gita 2.13",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "wisdom",
+        "equanimity",
+        "detachment"
+      ],
+      "intent_matches": [
+        "wisdom",
+        "anxiety_relief",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-2-20",
+      "citation": "Bhagavad Gita 2.20",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "wisdom",
+        "equanimity",
+        "detachment"
+      ],
+      "intent_matches": [
+        "wisdom",
+        "anxiety_relief",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-2-22",
+      "citation": "Bhagavad Gita 2.22",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "wisdom",
+        "equanimity",
+        "detachment"
+      ],
+      "intent_matches": [
+        "wisdom",
+        "anxiety_relief",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-2-50",
+      "citation": "Bhagavad Gita 2.50",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "action",
+        "detachment",
+        "devotion"
+      ],
+      "intent_matches": [
+        "action_guidance",
+        "duty",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-2-62",
+      "citation": "Bhagavad Gita 2.62",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "anger",
+        "desire",
+        "self-control"
+      ],
+      "intent_matches": [
+        "anger_management",
+        "self_control",
+        "discipline"
+      ]
+    },
+    {
+      "id": "BG-2-63",
+      "citation": "Bhagavad Gita 2.63",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "anger",
+        "desire",
+        "self-control"
+      ],
+      "intent_matches": [
+        "anger_management",
+        "self_control",
+        "discipline"
+      ]
+    },
+    {
+      "id": "BG-3-19",
+      "citation": "Bhagavad Gita 3.19",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "action",
+        "detachment",
+        "duty"
+      ],
+      "intent_matches": [
+        "action_guidance",
+        "duty",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-3-30",
+      "citation": "Bhagavad Gita 3.30",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "action",
+        "detachment",
+        "devotion"
+      ],
+      "intent_matches": [
+        "action_guidance",
+        "duty",
+        "detachment"
+      ]
+    },
+    {
+      "id": "BG-4-7",
+      "citation": "Bhagavad Gita 4.7",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "duty",
+        "knowledge",
+        "liberation"
+      ],
+      "intent_matches": [
+        "duty",
+        "moral_guidance",
+        "wisdom"
+      ]
+    },
+    {
+      "id": "BG-4-8",
+      "citation": "Bhagavad Gita 4.8",
+      "priority_score": 0.86,
+      "primary_topics": [
+        "duty",
+        "wisdom",
+        "action"
+      ],
+      "intent_matches": [
+        "duty",
+        "moral_guidance",
+        "wisdom"
+      ]
+    }
+  ],
+  "repeated_one_line_summaries": [],
+  "repeated_embedding_texts": [],
+  "verses_with_too_many_intents": [],
+  "verses_with_too_many_keywords": [],
+  "warnings": []
+}

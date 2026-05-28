@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-21T20:07:04.934410+00:00",
+  "generated_at": "2026-05-28T20:16:38.360458+00:00",
   "gita_verses_imported": 700,
   "expected_gita_verse_count": 700,
   "gita_complete_flag": true,
@@ -12,7 +12,7 @@
     "mahabharata_primary": "ganguli_aasi_github"
   },
   "sqlite": {
-    "sqlite_path": "D:\\MyProjects\\Sarathi\\knowledge\\indexes\\sarathi_rag.sqlite",
+    "sqlite_path": "D:\\MyProjects\\Sarathi\\shared\\knowledge\\indexes\\sarathi_rag.sqlite",
     "gita_documents": 700,
     "mahabharata_documents": 3929,
     "concepts": 15

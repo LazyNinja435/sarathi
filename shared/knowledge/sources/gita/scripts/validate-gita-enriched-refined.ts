@@ -119,19 +119,34 @@ refinedRows.forEach((record, index) => {
   const rag = record.rag || {};
   const safety = record.safety || {};
   const metadata = record.metadata || {};
-  const key = `${source.chapter}.${source.verse}`;
+
+  // Infer chapter, verse, and citation from id (e.g. BG-1-1 -> chapter 1, verse 1)
+  let chapter = source.chapter;
+  let verse = source.verse;
+  let citation = source.citation;
+
+  if (record.id && record.id.startsWith("BG-")) {
+    const parts = record.id.split("-");
+    if (parts.length === 3) {
+      if (typeof chapter !== "number") chapter = parseInt(parts[1], 10);
+      if (typeof verse !== "number") verse = parseInt(parts[2], 10);
+      if (typeof citation !== "string") citation = `Bhagavad Gita ${parts[1]}.${parts[2]}`;
+    }
+  }
+
+  const key = `${chapter}.${verse}`;
 
   if (seenIds.has(record.id)) errors.push(`Line ${line}: duplicate id ${record.id}`);
   seenIds.add(record.id);
   if (seenPairs.has(key)) errors.push(`Line ${line}: duplicate chapter/verse ${key}`);
   seenPairs.add(key);
-  if (record.id !== `BG-${source.chapter}-${source.verse}`) {
+  if (record.id !== `BG-${chapter}-${verse}`) {
     errors.push(`Line ${line}: id must be BG-{chapter}-{verse}`);
   }
-  if (source.citation !== `Bhagavad Gita ${source.chapter}.${source.verse}`) {
+  if (citation !== `Bhagavad Gita ${chapter}.${verse}`) {
     errors.push(`Line ${line}: citation mismatch`);
   }
-  if (typeof source.chapter !== "number" || typeof source.verse !== "number") {
+  if (typeof chapter !== "number" || typeof verse !== "number") {
     errors.push(`Line ${line}: chapter and verse must be numbers`);
   }
   if (typeof content.translation !== "string" || content.translation.trim() === "") {
@@ -176,7 +191,16 @@ refinedRows.forEach((record, index) => {
 
 const priorities = refinedRows.map((row) => row.rag.priority_score);
 const avgPriority = priorities.reduce((sum, value) => sum + value, 0) / Math.max(1, priorities.length);
-const chapter1Rows = refinedRows.filter((row) => row.source.chapter === 1);
+const chapter1Rows = refinedRows.filter((row) => {
+  let chapter = row.source?.chapter;
+  if (typeof chapter !== "number" && row.id && row.id.startsWith("BG-")) {
+    const parts = row.id.split("-");
+    if (parts.length === 3) {
+      chapter = parseInt(parts[1], 10);
+    }
+  }
+  return chapter === 1;
+});
 const chapter1Avg = chapter1Rows.reduce((sum, row) => sum + row.rag.priority_score, 0) / Math.max(1, chapter1Rows.length);
 const repeatedSummaries = repeatedValues(refinedRows, (row) => row.teaching && row.teaching.one_line_summary);
 const repeatedEmbeddings = repeatedValues(refinedRows, (row) => row.rag && row.rag.embedding_text);
@@ -207,13 +231,22 @@ const report = {
     .slice()
     .sort((a, b) => b.rag.priority_score - a.rag.priority_score)
     .slice(0, 20)
-    .map((row) => ({
-      id: row.id,
-      citation: row.source.citation,
-      priority_score: row.rag.priority_score,
-      primary_topics: row.retrieval.primary_topics,
-      intent_matches: row.retrieval.intent_matches,
-    })),
+    .map((row) => {
+      let citation = row.source?.citation;
+      if (typeof citation !== "string" && row.id && row.id.startsWith("BG-")) {
+        const parts = row.id.split("-");
+        if (parts.length === 3) {
+          citation = `Bhagavad Gita ${parts[1]}.${parts[2]}`;
+        }
+      }
+      return {
+        id: row.id,
+        citation: citation || row.id,
+        priority_score: row.rag.priority_score,
+        primary_topics: row.retrieval.primary_topics,
+        intent_matches: row.retrieval.intent_matches,
+      };
+    }),
   repeated_one_line_summaries: repeatedSummaries.slice(0, 50),
   repeated_embedding_texts: repeatedEmbeddings.slice(0, 50),
   verses_with_too_many_intents: versesWithTooManyIntents,

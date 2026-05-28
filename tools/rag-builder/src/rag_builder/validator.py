@@ -96,25 +96,38 @@ def validate_corpus() -> dict[str, Any]:
 
 
 def _gita_fields(row: dict[str, Any]) -> dict[str, Any]:
-    if "source" not in row:
-        return {
-            "chapter": row.get("chapter"),
-            "verse": row.get("verse"),
-            "translation": row.get("translation"),
-            "citation": row.get("citation"),
-            "source_id": row.get("source_id"),
-            "license": row.get("license"),
-            "search_text": row.get("search_text"),
-        }
-    source = row.get("source", {})
+    source = row.get("source", {}) if "source" in row else row
+    chapter = source.get("chapter")
+    verse = source.get("verse")
+    citation = source.get("citation")
+
+    # Infer from id if missing
+    rid = row.get("id", "")
+    if (chapter is None or verse is None or citation is None) and rid.startswith("BG-"):
+        parts = rid.split("-")
+        if len(parts) == 3:
+            if chapter is None:
+                chapter = int(parts[1])
+            if verse is None:
+                verse = int(parts[2])
+            if citation is None:
+                citation = f"Bhagavad Gita {parts[1]}.{parts[2]}"
+
+    chapter = chapter or 1
+    verse = verse or 1
+    citation = citation or rid
+
+    translation = row.get("translation") if "source" not in row else row.get("content", {}).get("translation")
+    search_text = row.get("search_text") if "source" not in row else row.get("rag", {}).get("search_text")
+
     return {
-        "chapter": source.get("chapter"),
-        "verse": source.get("verse"),
-        "translation": row.get("content", {}).get("translation"),
-        "citation": source.get("citation"),
-        "source_id": source.get("source_id"),
-        "license": source.get("license"),
-        "search_text": row.get("rag", {}).get("search_text"),
+        "chapter": chapter,
+        "verse": verse,
+        "translation": translation,
+        "citation": citation,
+        "source_id": source.get("source_id") or "besant_wikisource_1922",
+        "license": source.get("license") or "Public domain in the United States; verify jurisdiction before commercial distribution",
+        "search_text": search_text,
     }
 
 
