@@ -9,11 +9,11 @@ import { generateSarathiResponse } from "./gemini.js";
 import type { GuestUsageStore } from "./guestUsageStore.js";
 import { searchBackendRagPassages } from "./rag.js";
 
-const providerSchema = z.enum(["gemini", "openrouter"]);
+type SarathiCloudProvider = "gemini" | "deepseek" | "openrouter";
 
 const chatRequestSchema = z.object({
-  mode: z.enum(["demo", "user_key"]).default("user_key"),
-  provider: providerSchema.default("gemini"),
+  mode: z.enum(["demo", "user_key"]).optional(),
+  provider: z.enum(["gemini", "deepseek", "openrouter"]).optional(),
   apiKey: z.string().min(10).optional(),
   geminiApiKey: z.string().min(10).optional(),
   demoClientId: z.string().min(8).max(128).optional(),
@@ -112,12 +112,12 @@ export function createApp(options: CreateAppOptions) {
   app.get("/api/health", async () => ({
     ok: true,
     service: "sarathi-api",
-    provider: "gemini",
+    provider: "server-managed",
     model: options.env.geminiModel,
-    demoProvider: options.env.geminiDemoApiKey ? "gemini" : "openrouter",
-    demoModel: options.env.geminiDemoApiKey ? options.env.geminiModel : options.env.openRouterDemoModel,
-    demoFallbackProvider: "openrouter",
-    demoFallbackModel: options.env.openRouterDemoModel
+    providers: buildProviderCascade(options).map((provider) => ({
+      provider: provider.provider,
+      model: provider.model
+    }))
   }));
 
   app.get("/api/devdash/stats", async (request, reply) => {
@@ -146,26 +146,16 @@ export function createApp(options: CreateAppOptions) {
     const body = chatRequestSchema.parse(request.body);
     const authHeader = request.headers.authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
-    if (body.mode === "user_key" && !token) {
-      return reply.code(401).send({ error: "Missing Firebase ID token." });
-    }
-
     const user = token ? await options.authVerifier.verifyIdToken(token) : { uid: body.demoClientId ?? request.ip, name: "friend" };
-    const isDemo = body.mode === "demo";
-    let provider = isDemo ? (options.env.geminiDemoApiKey ? "gemini" : "openrouter") : body.provider;
-    let apiKey = isDemo ? (options.env.geminiDemoApiKey ?? options.env.openRouterDemoApiKey) : body.apiKey ?? body.geminiApiKey;
-    let model = isDemo
-      ? (options.env.geminiDemoApiKey ? options.env.geminiModel : options.env.openRouterDemoModel)
-      : provider === "openrouter"
-        ? options.env.openRouterUserModel
-        : options.env.geminiModel;
+    const isGuest = !token;
+    const providers = buildProviderCascade(options);
 
-    if (!apiKey) {
-      return reply.code(isDemo ? 503 : 400).send({ error: isDemo ? "Demo mode is not configured." : "Missing API key." });
+    if (providers.length === 0) {
+      return reply.code(503).send({ error: "Sarathi online guidance is not configured." });
     }
 
     let messagesRemaining: number | undefined;
-    if (isDemo) {
+    if (isGuest) {
       const limit = Math.max(0, options.env.demoMessageLimit);
       const usageKey = user.uid || body.demoClientId || request.ip;
       const used = demoUsage.get(usageKey) ?? 0;
@@ -187,31 +177,31 @@ export function createApp(options: CreateAppOptions) {
       longTermMemory: body.longTermMemory
     });
 
-    let generated: Awaited<ReturnType<typeof generateResponse>>;
-    try {
-      generated = await generateResponse({
-        apiKey,
-        model,
-        provider,
-        prompt
-      });
-    } catch (error) {
-      if (!isDemo || provider !== "gemini" || !options.env.openRouterDemoApiKey) {
-        throw error;
+    let generated: Awaited<ReturnType<typeof generateResponse>> | undefined;
+    let selectedProvider = providers[0];
+    let lastError: unknown;
+    for (const candidate of providers) {
+      try {
+        generated = await generateResponse({
+          apiKey: candidate.apiKey,
+          model: candidate.model,
+          provider: candidate.provider,
+          prompt
+        });
+        selectedProvider = candidate;
+        lastError = undefined;
+        break;
+      } catch (error) {
+        lastError = error;
+        request.log.warn({ err: error, provider: candidate.provider }, "server-managed provider failed");
       }
-      provider = "openrouter";
-      apiKey = options.env.openRouterDemoApiKey;
-      model = options.env.openRouterDemoModel;
-      request.log.warn({ err: error }, "demo Gemini failed; falling back to OpenRouter");
-      generated = await generateResponse({
-        apiKey,
-        model,
-        provider,
-        prompt
-      });
     }
 
-    if (isDemo && !token) {
+    if (lastError || !generated) {
+      throw lastError;
+    }
+
+    if (isGuest) {
       await options.guestUsageStore?.incrementGuestMessages();
     }
 
@@ -221,16 +211,38 @@ export function createApp(options: CreateAppOptions) {
         userMessage: body.latestUserMessage,
         ragPassages
       }),
-      provider,
-      model,
+      provider: selectedProvider.provider,
+      model: selectedProvider.model,
       rag: {
         used: ragPassages.length > 0,
         sources: ragPassages.map((passage) => passage.citation)
       },
-      demo: isDemo ? { messagesRemaining, messageLimit: options.env.demoMessageLimit } : undefined,
+      demo: isGuest ? { messagesRemaining, messageLimit: options.env.demoMessageLimit } : undefined,
       diagnostics: generated.usage ? { usage: generated.usage } : undefined
     };
   });
 
   return app;
+}
+
+function buildProviderCascade(options: CreateAppOptions): Array<{
+  provider: SarathiCloudProvider;
+  apiKey: string;
+  model: string;
+}> {
+  return [
+    options.env.geminiDemoApiKey
+      ? { provider: "gemini" as const, apiKey: options.env.geminiDemoApiKey, model: options.env.geminiModel }
+      : null,
+    options.env.deepSeekDemoApiKey
+      ? { provider: "deepseek" as const, apiKey: options.env.deepSeekDemoApiKey, model: options.env.deepSeekDemoModel }
+      : null,
+    options.env.openRouterDemoApiKey
+      ? { provider: "openrouter" as const, apiKey: options.env.openRouterDemoApiKey, model: options.env.openRouterDemoModel }
+      : null
+  ].filter((provider): provider is {
+    provider: SarathiCloudProvider;
+    apiKey: string;
+    model: string;
+  } => provider !== null);
 }

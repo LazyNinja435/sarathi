@@ -11,13 +11,15 @@ This file is the main operating manual for coding agents working on **Sarathi**.
 - `.ai/skills/` contains repo-local skills agents may use while working on Sarathi.
 - `.ai/agents/` is reserved for agent profiles, prompts, or role definitions.
 - `.ai/rules/` is reserved for additional local rules agents should follow.
+- `.ai/rules/rules.md` must always be loaded by agents before doing anything in this repo.
+- `.ai/plans/` is reserved for agent-created plans.
 - Treat `.ai/` as working context only: do not commit it, and keep canonical project rules in `AGENTS.md`.
 
 ---
 
 ## 1. Project identity
 
-**Sarathi** is a Krishna / Bhagavad Gita companion available as a **native Android app** (offline-first, on-device Gemma via LiteRT-LM) and a **web companion** (React + Fastify, cloud inference via Gemini / OpenRouter).
+**Sarathi** is a Krishna / Bhagavad Gita companion available as a **native Android app** (on-device Gemma via LiteRT-LM plus server-managed online routing) and a **web companion** (React + Fastify, cloud inference via Gemini / DeepSeek / OpenRouter).
 
 It should feel like a **calm, premium, devotional** spiritual companion—not a generic chatbot.
 
@@ -37,7 +39,7 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 | **Package** | `com.sarathi.app` |
 | **Platforms** | Android (Kotlin / Compose), Web (React / Fastify / Firebase) |
 | **Primary LLM runtime** | Gemma 4 E2B **LiteRT-LM** (`.litertlm`) — Android on-device |
-| **Web LLM providers** | Gemini (Google AI Studio) and OpenRouter — cloud inference |
+| **Web LLM providers** | Gemini (Google AI Studio), DeepSeek, and OpenRouter — server-managed cloud inference |
 | **Legacy runtime** | MediaPipe `.task` support remains as alternate / legacy |
 
 ---
@@ -54,7 +56,7 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 - **LiteRT-LM:** Validated on a **physical Pixel** device.
 - **Practice / mock mode:** Works end-to-end; always available as fallback.
 - **MediaPipe `.task`:** Code path exists; treat as **legacy** when LiteRT is available.
-- **Google AI Studio:** Optional, user-enabled online provider path exists in current code; keep it opt-in, store API keys securely, and preserve offline-first defaults.
+- **Server-managed online guidance:** Android calls the Sarathi API for cloud guidance; provider secrets must never be embedded in the APK.
 - **GitHub release / update infrastructure:** Being extended (manifests, APK, chunked model).
 - **Local workflow:** A Pixel-oriented bundle script exists for app + model install on device.
 
@@ -63,8 +65,8 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 - **Frontend:** `web/apps/frontend` — React, Vite, TypeScript.
 - **API:** `web/apps/api` — Fastify, TypeScript, Firebase Auth.
 - **Shared packages:** `shared-types`, `shared-persona`, `shared-config`.
-- **LLM providers:** Gemini (Google AI Studio) and OpenRouter.
-- **Modes:** Demo (server-managed key) or bring-your-own API key.
+- **LLM providers:** Gemini (Google AI Studio) primary, DeepSeek fallback, OpenRouter final fallback.
+- **Modes:** Server-managed cloud guidance for all users; sign-in enables Firestore-backed memory and conversation persistence.
 - **Deployment:** Docker Compose; Raspberry Pi target (see `web/docs/PI_DEPLOYMENT.md`).
 - **RAG:** Server-side lexical search over canonical enriched Gita JSONL (see §5).
 - **Auth:** Firebase Authentication (Google sign-in); guest/demo sessions.
@@ -204,24 +206,24 @@ The experience aims to give the emotional sense of speaking with Krishna as char
 - `web/apps/frontend/src/App.tsx` — React SPA with landing, chat, settings, and dev dashboard routes.
 - `web/apps/api/src/app.ts` — Fastify server with `/api/chat`, `/api/health`, `/api/devdash/stats`.
 - `web/apps/api/src/rag.ts` — Server-side RAG using the canonical enriched Gita JSONL.
-- `web/apps/api/src/gemini.ts` — Gemini and OpenRouter provider adapters.
+- `web/apps/api/src/gemini.ts` — Gemini, DeepSeek, and OpenRouter provider adapters.
 - `web/packages/shared-persona/` — Shared persona + prompt builder (TypeScript mirror of Android's `PromptBuilder`).
 - `web/packages/shared-types/` — Shared chat, memory, preference, and provider types.
 - **Do not** reintroduce browser-shipped RAG JSON for web chat; the web API must read the canonical JSONL server-side.
 
 **Web provider selection (priority)**
 
-1. **Authenticated user** + saved API key → user's own Gemini or OpenRouter key.
-2. **Demo/guest mode** → server-managed key (Gemini with OpenRouter fallback).
-3. **No API key configured** → demo mode (server key).
+1. Sarathi API always chooses the server-managed cascade: Gemini, then DeepSeek if configured, then OpenRouter.
+2. Firebase Auth is used for personalization and Firestore-backed memory, not for BYO provider keys.
+3. Frontend requests must not send provider API keys, `provider`, or `mode` as routing authority.
 
 ### Runtime selection (priority — Android)
 
 1. **Practice mode ON** → `MockKrishnaChatEngine`.
-2. **Google AI Studio enabled** + configured user API key → `GoogleAiStudioChatEngine` with offline/practice fallback.
-3. **Practice mode OFF** + compatible **`.litertlm`** → `LiteRtLmGemmaChatEngine`.
-4. **Practice mode OFF** + **`.task` only** → `MediaPipeGemmaChatEngine`.
-5. **No model**, **blocked / incompatible model**, or **runtime failure** → fall back gracefully to **practice mode**. **Do not crash.**
+2. **Practice mode OFF** → `SarathiApiChatEngine` calls the Sarathi API, with offline fallback.
+3. **Offline fallback** + compatible **`.litertlm`** → `LiteRtLmGemmaChatEngine`.
+4. **Offline fallback** + **`.task` only** → `MediaPipeGemmaChatEngine`.
+5. **No model**, **blocked / incompatible model**, network failure, server failure, or runtime failure → fall back gracefully to practice/unreachable guidance. **Do not crash.**
 
 **Preference:** When both LiteRT and MediaPipe models exist, **prefer LiteRT** over MediaPipe.
 
@@ -321,6 +323,7 @@ Three release **concepts**:
 - **Web:** `web/.env` (real secrets), Firebase service-account keys, `.firebase/` cache
 
 **Do not** embed GitHub tokens (or other secrets) in the app.
+**Do not** embed Gemini, DeepSeek, OpenRouter, or other provider API keys in Android or frontend code; provider keys belong only in server-managed environment variables.
 
 **App updates**
 
@@ -456,20 +459,22 @@ When changing UI:
 **Before changing code**
 
 1. Read **AGENTS.md** (this file).
-2. Check `.ai/skills/`, `.ai/rules/`, and `.ai/agents/` for any local agent materials relevant to the task.
-3. Check **`git status`**.
-4. Classify the task: **UI**, **LLM runtime**, **RAG**, **release/update**, **model download**, **web (frontend/api/shared)**, **tests/docs**, or a narrow combination.
-5. Avoid **broad refactors** unless explicitly requested.
-6. Make **targeted** changes aligned with existing patterns.
-7. Preserve **practice mode**, **LiteRT**, **RAG**, and **release scripts** unless the task explicitly changes them.
-8. Run the **relevant** build and/or tests:
+2. Load `.ai/rules/rules.md` before doing anything else.
+3. Check `.ai/skills/`, `.ai/rules/`, and `.ai/agents/` for any local agent materials relevant to the task.
+4. When asked to create a plan, create it under `.ai/plans/`.
+5. Check **`git status`**.
+6. Classify the task: **UI**, **LLM runtime**, **RAG**, **release/update**, **model download**, **web (frontend/api/shared)**, **tests/docs**, or a narrow combination.
+7. Avoid **broad refactors** unless explicitly requested.
+8. Make **targeted** changes aligned with existing patterns.
+9. Preserve **practice mode**, **LiteRT**, **RAG**, and **release scripts** unless the task explicitly changes them.
+10. Run the **relevant** build and/or tests:
    - Android changes: Gradle build and/or tests.
    - Web changes: `npm run build` (typecheck) and `npm run test` from `web/`.
    - Shared prompt contract changes: regenerate both Android and web generated constants (`node tools/generate_sarathi_prompt_contract.mjs`).
    - Brand asset changes: regenerate canonical logo and sync platform copies.
-9. Update **docs** or internal reports when **behavior** or **release contracts** change.
-10. **Never** claim Gemma works on device unless logs show **LiteRT-LM load** and **generation** success.
-11. **Never** claim a GitHub release “works” unless assets are **actually published** and **smoke-tested** as appropriate.
+11. Update **docs** or internal reports when **behavior** or **release contracts** change.
+12. **Never** claim Gemma works on device unless logs show **LiteRT-LM load** and **generation** success.
+13. **Never** claim a GitHub release “works” unless assets are **actually published** and **smoke-tested** as appropriate.
 
 ---
 

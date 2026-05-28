@@ -5,9 +5,10 @@ export interface ApiEnv {
   allowedOrigin: string;
   geminiModel: string;
   geminiDemoApiKey?: string;
+  deepSeekDemoApiKey?: string;
+  deepSeekDemoModel: string;
   openRouterDemoApiKey?: string;
   openRouterDemoModel: string;
-  openRouterUserModel: string;
   demoMessageLimit: number;
   devdashStatsPath: string;
   adminEmails: string[];
@@ -24,9 +25,10 @@ export function readEnv(source = process.env): ApiEnv {
     allowedOrigin: source.ALLOWED_ORIGIN ?? PRODUCTION_ORIGIN,
     geminiModel: source.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL,
     geminiDemoApiKey: source.GEMINI_DEMO_API_KEY,
+    deepSeekDemoApiKey: source.DEEPSEEK_DEMO_API_KEY,
+    deepSeekDemoModel: source.DEEPSEEK_DEMO_MODEL ?? "deepseek-chat",
     openRouterDemoApiKey: source.OPENROUTER_DEMO_API_KEY,
     openRouterDemoModel: source.OPENROUTER_DEMO_MODEL ?? "openrouter/free",
-    openRouterUserModel: source.OPENROUTER_USER_MODEL ?? source.OPENROUTER_DEMO_MODEL ?? "openrouter/free",
     demoMessageLimit: Number(source.DEMO_MESSAGE_LIMIT ?? 10),
     devdashStatsPath: source.DEVDASH_STATS_PATH ?? "/data/devdash-stats.json",
     adminEmails: parseList(source.DEVDASH_ADMIN_EMAILS),

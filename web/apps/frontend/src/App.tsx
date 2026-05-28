@@ -1,32 +1,21 @@
 import { createDefaultUserMemory, type ChatMessage, type ShortTermMemory } from "@sarathi/shared-types";
 import { getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from "firebase/auth";
-import { KeyRound, LogIn, LogOut, MessageCircle, Send, Settings, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { LogIn, LogOut, MessageCircle, Send, Settings, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "./firebase";
 import { ensureUserDefaults, getDevDashboardStats, getUserMemory, saveConversationMessage, saveUserMemory, type DevDashboardStats } from "./firestore";
 import {
-  clearGeminiApiKey,
-  clearOpenRouterApiKey,
+  dismissSignInPersonalizationBanner,
   getDemoClientId,
-  readApiMode,
-  readGeminiApiKey,
   readGuestSession,
-  readOpenRouterApiKey,
-  readProvider,
-  saveApiMode,
-  saveGeminiApiKey,
+  readSignInPersonalizationBannerDismissed,
   saveGuestSession,
-  saveOpenRouterApiKey,
-  saveProvider,
-  type AiProvider,
-  type ApiMode
 } from "./storage";
 import "./styles.css";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
 const conversationId = "main";
-const demoMessageLimit = 10;
 const postLoginRouteStorage = "sarathi.postLoginRoute";
 const welcomeMessage = "My dear one,\n\nI have been seated quietly in the chariot of your heart.\n\nTell me \u2014 what battle stands before you today?";
 const starterPrompts = [
@@ -41,14 +30,6 @@ const starterPrompts = [
 interface RagSearchDebug {
   used: boolean;
   sources: string[];
-}
-
-function providerHasSavedKey(provider: AiProvider) {
-  return Boolean((provider === "openrouter" ? readOpenRouterApiKey() : readGeminiApiKey()).trim());
-}
-
-function effectiveApiMode(user: User | null, provider: AiProvider): ApiMode {
-  return user && readApiMode() === "user_key" && providerHasSavedKey(provider) ? "user_key" : "demo";
 }
 
 async function signInWithGoogle(navigate: ReturnType<typeof useNavigate>, setAuthError?: (message: string) => void, targetPath = "/chat") {
@@ -146,31 +127,12 @@ function Chat({ user }: { user: User | null }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [apiMode, setApiMode] = useState<ApiMode>(() => effectiveApiMode(user, readProvider()));
-  const [provider, setProvider] = useState<AiProvider>(() => readProvider());
-  const [demoRemaining, setDemoRemaining] = useState(demoMessageLimit);
+  const [signInBannerDismissed, setSignInBannerDismissed] = useState(readSignInPersonalizationBannerDismissed);
   const [ragDebug, setRagDebug] = useState<RagSearchDebug>({ used: false, sources: [] });
-
-  useEffect(() => {
-    const syncSettings = () => {
-      const nextProvider = readProvider();
-      setProvider(nextProvider);
-      setApiMode(effectiveApiMode(user, nextProvider));
-    };
-    syncSettings();
-    window.addEventListener("focus", syncSettings);
-    return () => window.removeEventListener("focus", syncSettings);
-  }, [user]);
 
   async function sendMessage(messageText = input) {
     const text = messageText.trim();
     if (!text || busy) return;
-    const mode = user ? apiMode : "demo";
-    const apiKey = provider === "openrouter" ? readOpenRouterApiKey() : readGeminiApiKey();
-    if (mode === "user_key" && !apiKey) {
-      setError("Please add your API key in Settings first.");
-      return;
-    }
     setError("");
     setBusy(true);
     const userMessage: ChatMessage = {
@@ -178,8 +140,7 @@ function Chat({ user }: { user: User | null }) {
       role: "user",
       text,
       createdAt: new Date().toISOString(),
-      source: "frontend",
-      provider: mode === "demo" ? "openrouter" : provider
+      source: "frontend"
     };
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
@@ -189,16 +150,12 @@ function Chat({ user }: { user: User | null }) {
       const longTermMemory = user ? await getUserMemory(user.uid) : null;
       const shortTermMemory = inferShortTermMemory(nextMessages);
       const data = await requestBackendSarathiResponse({
-        mode,
-        provider,
-        apiKey,
         latestUserMessage: text,
         recentHistory: messages.slice(-8),
         shortTermMemory,
         longTermMemory,
         user
       });
-      if ("demo" in data && data.demo) setDemoRemaining(data.demo.messagesRemaining);
       if ("rag" in data && data.rag) setRagDebug(data.rag);
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -227,7 +184,7 @@ function Chat({ user }: { user: User | null }) {
       <div className="chat-panel">
         <div className="chat-heading">
           <div>
-            <p className="eyebrow">{apiMode === "demo" || !user ? "Demo guidance through Google AI Studio" : `Using your ${provider === "gemini" ? "Google AI Studio" : "OpenRouter"} key`}</p>
+            <p className="eyebrow">Sarathi online guidance</p>
             <h2>What rests upon your heart?</h2>
           </div>
           <button className="ghost" onClick={() => {
@@ -255,10 +212,20 @@ function Chat({ user }: { user: User | null }) {
           {busy && <article className="message assistant">The charioteer is reflecting...</article>}
         </div>
         {error && <p className="error">{error}</p>}
-        {(apiMode === "demo" || !user) && (
-          <div className="demo-banner">
-            <span>Demo mode: Limited messages based on availability. Get your own API key for unlimited use.</span>
-            <button onClick={() => navigate("/settings")}>Get Free Key</button>
+        {!user && !signInBannerDismissed && (
+          <div className="demo-banner personalization-banner">
+            <span className="banner-text">Sign in to make Sarathi remember what matters to you.</span>
+            <button className="banner-btn" onClick={() => signInWithGoogle(navigate)}>Sign in</button>
+            <button
+              className="icon-dismiss"
+              aria-label="Dismiss sign-in reminder"
+              onClick={() => {
+                dismissSignInPersonalizationBanner();
+                setSignInBannerDismissed(true);
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
         <div className="references-panel">
@@ -291,9 +258,6 @@ function Chat({ user }: { user: User | null }) {
 }
 
 async function requestBackendSarathiResponse(input: {
-  mode: ApiMode;
-  provider: AiProvider;
-  apiKey: string;
   latestUserMessage: string;
   recentHistory: ChatMessage[];
   shortTermMemory: ShortTermMemory;
@@ -313,9 +277,6 @@ async function requestBackendSarathiResponse(input: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     body: JSON.stringify({
-      mode: input.mode,
-      provider: input.provider,
-      apiKey: input.mode === "user_key" ? input.apiKey : undefined,
       demoClientId: getDemoClientId(),
       conversationId,
       latestUserMessage: input.latestUserMessage,
@@ -343,93 +304,27 @@ async function requestBackendSarathiResponse(input: {
 function SettingsPage({ user }: { user: User | null }) {
   const navigate = useNavigate();
   const [authError, setAuthError] = useState("");
-  const [apiMode, setApiMode] = useState<ApiMode>(() => user ? readApiMode() : "demo");
-  const [provider, setProviderState] = useState<AiProvider>(readProvider());
-  const [apiKey, setApiKey] = useState(readGeminiApiKey());
-  const [saved, setSaved] = useState(false);
-  const masked = useMemo(() => apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}` : "No key saved", [apiKey]);
-
-  useEffect(() => {
-    setApiKey(provider === "openrouter" ? readOpenRouterApiKey() : readGeminiApiKey());
-  }, [provider]);
-
-  function chooseMode(nextMode: ApiMode) {
-    if (!user && nextMode === "user_key") {
-      setApiMode("user_key");
-      saveApiMode("user_key");
-      return;
-    }
-    setApiMode(nextMode);
-    saveApiMode(nextMode);
-  }
-
-  function chooseProvider(nextProvider: AiProvider) {
-    setProviderState(nextProvider);
-    saveProvider(nextProvider);
-  }
-
-  function saveKey() {
-    if (provider === "openrouter") saveOpenRouterApiKey(apiKey.trim());
-    else saveGeminiApiKey(apiKey.trim());
-    saveApiMode("user_key");
-    setSaved(true);
-  }
-
-  function forgetKey() {
-    if (provider === "openrouter") clearOpenRouterApiKey();
-    else clearGeminiApiKey();
-    setApiKey("");
-  }
 
   return (
     <section className="settings-grid">
       <div className="settings-panel">
-        <p className="eyebrow">AI Provider</p>
-        <h2>API key</h2>
-        <p className="settings-note">Demo mode uses Sarathi's server key. Your own key is saved in this browser and sent to Sarathi's API only when you send a message. The server does not store it.</p>
-        <div className="segmented-control" role="tablist" aria-label="API key mode">
-          <button className={apiMode === "demo" ? "active" : ""} onClick={() => chooseMode("demo")}>Demo Mode</button>
-          <button className={apiMode === "user_key" ? "active" : ""} onClick={() => chooseMode("user_key")}>Use My Key</button>
-        </div>
-        {apiMode === "demo" && <p className="provider-callout">Using server-provided AI key. No setup needed. Just start chatting.</p>}
-        {apiMode === "user_key" && !user && (
-          <div className="provider-callout">
-            <p>Sign in with Google to use your own key.</p>
-            <button className="primary-action small" onClick={() => signInWithGoogle(navigate, setAuthError)}>Sign in with Google</button>
-            {authError && <p className="error inline-error">{authError}</p>}
-          </div>
-        )}
-        {apiMode === "user_key" && user && (
+        <p className="eyebrow">Memory</p>
+        <h2>Personal guidance</h2>
+        <p className="settings-note">
+          Sign in to let Sarathi keep a gentle memory file for your preferences and notes you explicitly ask it to remember.
+        </p>
+        {user ? (
+          <button className="ghost danger" onClick={async () => {
+            await saveUserMemory(user.uid, createDefaultUserMemory());
+          }}><Trash2 size={17} /> Clear long-term memory</button>
+        ) : (
           <>
-            <label>
-              <span>Provider</span>
-              <select value={provider} onChange={(event) => chooseProvider(event.target.value as AiProvider)}>
-                <option value="gemini">Google (AI Studio)</option>
-                <option value="openrouter">OpenRouter</option>
-              </select>
-            </label>
-            <label>
-              <span>API Key</span>
-              <input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="Paste your key" />
-            </label>
-            <p className="key-links">Get your key: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a> · <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">OpenRouter</a></p>
-            <p className="billing-note">For peace of mind, please use API keys without enabling billing, so Sarathi helps you avoid any unexpected charges.</p>
-            <p className="muted"><KeyRound size={15} /> {masked}</p>
-            <div className="button-row">
-              <button className="primary-action small" onClick={saveKey}>Save key</button>
-              <button className="ghost" onClick={forgetKey}>Forget key</button>
-            </div>
-            {saved && <p className="success">Saved in this browser. Sarathi's API will use this key only for your chat requests.</p>}
+            <button className="primary-action small" onClick={() => signInWithGoogle(navigate, setAuthError)}>
+              <LogIn size={17} /> Sign in for personal memory
+            </button>
+            {authError && <p className="error inline-error">{authError}</p>}
           </>
         )}
-      </div>
-      <div className="settings-panel">
-        <p className="eyebrow">Memory</p>
-        <h2>Long-term memory</h2>
-        <p className="settings-note">Sarathi only saves personal notes when you clearly ask it to remember something. You can clear the memory here.</p>
-        {user ? <button className="ghost danger" onClick={async () => {
-          await saveUserMemory(user.uid, createDefaultUserMemory());
-        }}><Trash2 size={17} /> Clear long-term memory</button> : <p className="settings-note">Guest chats do not save long-term memory.</p>}
       </div>
     </section>
   );
@@ -584,7 +479,6 @@ export function App() {
       <Route path="/" element={<Landing user={user} onContinueAsGuest={() => {
         setIsGuest(true);
         saveGuestSession(true);
-        saveApiMode("demo");
         getDemoClientId();
       }} />} />
       <Route path="/chat" element={(user || isGuest) ? <AppShell user={user} isGuest={isGuest} onExitGuest={() => {

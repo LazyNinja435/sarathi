@@ -15,16 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,14 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sarathi.app.BuildConfig
 import com.sarathi.app.SarathiApp
-import com.sarathi.app.llm.GoogleAiStudioConfig
 import com.sarathi.app.llm.ModelManager
 import com.sarathi.app.model.OnDeviceWisdomStatus
 import com.sarathi.app.modeldownload.ModelDownloadAction
@@ -62,7 +54,6 @@ import com.sarathi.app.ui.components.SacredButtonLabel
 import com.sarathi.app.ui.components.SacredButtonStyle
 import com.sarathi.app.ui.components.SacredCard
 import com.sarathi.app.ui.components.SacredCardVariant
-import com.sarathi.app.ui.theme.IndigoBubble
 import com.sarathi.app.ui.theme.Ink
 import com.sarathi.app.ui.theme.SacredGold
 import com.sarathi.app.ui.theme.SoftGold
@@ -88,8 +79,6 @@ fun SettingsScreen(
     var showAbout by remember { mutableStateOf(false) }
     var devOpen by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
-    var googleAiStudioApiKeyDraft by remember { mutableStateOf("") }
-    var googleAiStudioKeyVisible by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val app = ctx.applicationContext as SarathiApp
     val activity = ctx as? Activity
@@ -153,10 +142,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
                 settingRow(
                     "Guidance engine",
-                    friendlyEngineLabel(
-                        googleAiStudio = prefs.googleAiStudioEnabled && prefs.googleAiStudioApiKeyConfigured,
-                        active = diag.activeRuntime,
-                    ),
+                    friendlyEngineLabel(active = diag.activeRuntime),
                 )
                 Spacer(Modifier.height(8.dp))
                 settingRow("Model status", friendlyModelStatus(status))
@@ -179,102 +165,6 @@ fun SettingsScreen(
                         fillMaxWidth = false,
                     ) {
                         SacredButtonLabel("Clear memory", inkOnParchment = false)
-                    }
-                }
-            }
-
-            SacredCard(variant = SacredCardVariant.Indigo) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(GoogleAiStudioConfig.PROVIDER_NAME, style = MaterialTheme.typography.titleMedium, color = SacredGold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Uses your own Google AI Studio API key. Sarathi defaults to ${GoogleAiStudioConfig.MODEL_NAME} when enabled.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = SoftGold.copy(alpha = 0.86f),
-                        )
-                    }
-                    Switch(
-                        checked = prefs.googleAiStudioEnabled,
-                        onCheckedChange = { settingsViewModel.setGoogleAiStudioEnabled(it) },
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                settingRow("API key", if (prefs.googleAiStudioApiKeyConfigured) "Configured" else "Not configured")
-                if (prefs.googleAiStudioEnabled) {
-                    Spacer(Modifier.height(10.dp))
-                    TextField(
-                        value = googleAiStudioApiKeyDraft,
-                        onValueChange = { googleAiStudioApiKeyDraft = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = {
-                            Text(
-                                if (prefs.googleAiStudioApiKeyConfigured) {
-                                    "Paste a new key to replace the saved key"
-                                } else {
-                                    "Paste Google AI Studio API key"
-                                },
-                                color = SoftGold.copy(alpha = 0.55f),
-                            )
-                        },
-                        singleLine = true,
-                        visualTransformation = if (googleAiStudioKeyVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { googleAiStudioKeyVisible = !googleAiStudioKeyVisible }) {
-                                Icon(
-                                    imageVector = if (googleAiStudioKeyVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = if (googleAiStudioKeyVisible) "Hide API key" else "Show API key",
-                                    tint = SacredGold,
-                                )
-                            }
-                        },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
-                            unfocusedContainerColor = IndigoBubble.copy(alpha = 0.92f),
-                            focusedTextColor = SoftGold,
-                            unfocusedTextColor = SoftGold,
-                            cursorColor = SacredGold,
-                            focusedIndicatorColor = SacredGold,
-                            unfocusedIndicatorColor = SacredGold.copy(alpha = 0.45f),
-                        ),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SacredButton(
-                            onClick = {
-                                settingsViewModel.saveGoogleAiStudioApiKey(googleAiStudioApiKeyDraft)
-                                googleAiStudioApiKeyDraft = ""
-                                googleAiStudioKeyVisible = false
-                            },
-                            enabled = googleAiStudioApiKeyDraft.isNotBlank(),
-                            fillMaxWidth = false,
-                            minHeight = 42.dp,
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                        ) {
-                            SacredButtonLabel("Save")
-                        }
-                        SacredButton(
-                            onClick = {
-                                settingsViewModel.clearGoogleAiStudioApiKey()
-                                googleAiStudioApiKeyDraft = ""
-                                googleAiStudioKeyVisible = false
-                            },
-                            enabled = prefs.googleAiStudioApiKeyConfigured || googleAiStudioApiKeyDraft.isNotBlank(),
-                            style = SacredButtonStyle.GoldOutline,
-                            fillMaxWidth = false,
-                            minHeight = 42.dp,
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                        ) {
-                            SacredButtonLabel("Clear", inkOnParchment = false)
-                        }
                     }
                 }
             }
@@ -741,10 +631,10 @@ private fun formatBytes(bytes: Long): String {
     return String.format("%.1f %s", v, units[i])
 }
 
-private fun friendlyEngineLabel(googleAiStudio: Boolean, active: LlmRuntimeKind): String = when {
-    googleAiStudio -> "Google AI Studio (${GoogleAiStudioConfig.MODEL_NAME})"
-    active == LlmRuntimeKind.LiteRtLm -> "On-device Gemma"
-    active == LlmRuntimeKind.MediaPipe -> "On-device Gemma (classic engine)"
+private fun friendlyEngineLabel(active: LlmRuntimeKind): String = when (active) {
+    LlmRuntimeKind.ServerManagedCloud -> "Sarathi online"
+    LlmRuntimeKind.LiteRtLm -> "On-device Gemma"
+    LlmRuntimeKind.MediaPipe -> "On-device Gemma (classic engine)"
     else -> "Vaikuntha unreachable"
 }
 
@@ -757,7 +647,7 @@ private fun friendlyModelStatus(status: ModelStatus): String = when (status) {
 
 private fun runtimeLabel(kind: LlmRuntimeKind): String = when (kind) {
     LlmRuntimeKind.Mock -> "Unavailable"
-    LlmRuntimeKind.GoogleAiStudio -> "Google AI Studio"
+    LlmRuntimeKind.ServerManagedCloud -> "Sarathi online"
     LlmRuntimeKind.LiteRtLm -> "LiteRT-LM"
     LlmRuntimeKind.MediaPipe -> "MediaPipe"
 }

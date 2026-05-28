@@ -7,9 +7,10 @@ const env: ApiEnv = {
   allowedOrigin: "https://talkto.sreekrishna.uk",
   geminiModel: "gemini-flash-lite-latest",
   geminiDemoApiKey: "gemini-demo-key-that-is-long",
+  deepSeekDemoApiKey: undefined,
+  deepSeekDemoModel: "deepseek-chat",
   openRouterDemoApiKey: "demo-server-key-that-is-long",
   openRouterDemoModel: "openrouter/free",
-  openRouterUserModel: "openrouter/free",
   demoMessageLimit: 10,
   devdashStatsPath: "/tmp/sarathi-devdash-test.json",
   adminEmails: [],
@@ -29,34 +30,71 @@ describe("api", () => {
     expect(response.json()).toMatchObject({ ok: true, service: "sarathi-api" });
   });
 
-  it("allows unauthenticated demo chat through the Gemini server key", async () => {
+  it("always uses the server-managed Gemini key for chat", async () => {
     const app = createApp({
       env,
       logger: false,
-      authVerifier: { verifyIdToken: async () => ({ uid: "u1" }) },
+      authVerifier: { verifyIdToken: async () => ({ uid: "u1", name: "Pruthvi" }) },
       generateResponse: async ({ apiKey, model, provider }) => {
         expect(apiKey).toBe(env.geminiDemoApiKey);
         expect(provider).toBe("gemini");
         expect(model).toBe("gemini-flash-lite-latest");
-        return { text: "A calm demo answer.", usage: undefined };
+        return { text: "A calm server-managed answer.", usage: undefined };
       }
     });
     const response = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello" }
+      headers: { authorization: "Bearer user-token" },
+      payload: {
+        conversationId: "c1",
+        latestUserMessage: "Hello",
+        provider: "openrouter",
+        apiKey: "client-key-that-must-be-ignored"
+      }
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       provider: "gemini",
-      model: "gemini-flash-lite-latest",
-      demo: { messagesRemaining: 9, messageLimit: 10 }
+      model: "gemini-flash-lite-latest"
     });
-    expect(response.json().assistantMessage).toContain("A calm demo answer.");
+    expect(response.body).not.toContain("client-key-that-must-be-ignored");
+    expect(response.json().assistantMessage).toContain("A calm server-managed answer.");
     expect(response.json().assistantMessage).toContain("Bhagavad Gita");
   });
 
-  it("falls back to OpenRouter when demo Gemini fails", async () => {
+  it("falls back from Gemini to DeepSeek to OpenRouter", async () => {
+    const calls: Array<{ provider?: string; apiKey: string; model: string }> = [];
+    const app = createApp({
+      env: {
+        ...env,
+        deepSeekDemoApiKey: "deepseek-demo-key-that-is-long",
+        deepSeekDemoModel: "deepseek-chat"
+      },
+      logger: false,
+      authVerifier: { verifyIdToken: async () => ({ uid: "u1" }) },
+      generateResponse: async ({ apiKey, model, provider }) => {
+        calls.push({ apiKey, model, provider });
+        if (provider !== "openrouter") throw new Error(`${provider} unavailable`);
+        return { text: "A calm OpenRouter third fallback answer.", usage: undefined };
+      }
+    });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/chat",
+      payload: { conversationId: "c1", latestUserMessage: "Hello" }
+    });
+    expect(response.statusCode).toBe(200);
+    expect(calls).toEqual([
+      { apiKey: env.geminiDemoApiKey, model: "gemini-flash-lite-latest", provider: "gemini" },
+      { apiKey: "deepseek-demo-key-that-is-long", model: "deepseek-chat", provider: "deepseek" },
+      { apiKey: env.openRouterDemoApiKey, model: "openrouter/free", provider: "openrouter" }
+    ]);
+    expect(response.json()).toMatchObject({ provider: "openrouter", model: "openrouter/free" });
+    expect(response.json().assistantMessage).toContain("A calm OpenRouter third fallback answer.");
+  });
+
+  it("skips DeepSeek when it is not configured", async () => {
     const calls: Array<{ provider?: string; apiKey: string; model: string }> = [];
     const app = createApp({
       env,
@@ -71,63 +109,32 @@ describe("api", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello" }
+      payload: { conversationId: "c1", latestUserMessage: "Hello" }
     });
     expect(response.statusCode).toBe(200);
     expect(calls).toEqual([
       { apiKey: env.geminiDemoApiKey, model: "gemini-flash-lite-latest", provider: "gemini" },
       { apiKey: env.openRouterDemoApiKey, model: "openrouter/free", provider: "openrouter" }
     ]);
-    expect(response.json()).toMatchObject({ provider: "openrouter", model: "openrouter/free" });
-    expect(response.json().assistantMessage).toContain("A calm OpenRouter fallback answer.");
   });
 
-  it("requires auth for user provided keys", async () => {
+  it("returns service unavailable when no server-managed provider key exists", async () => {
     const app = createApp({
-      env,
+      env: {
+        ...env,
+        geminiDemoApiKey: undefined,
+        deepSeekDemoApiKey: undefined,
+        openRouterDemoApiKey: undefined
+      },
       logger: false,
       authVerifier: { verifyIdToken: async () => ({ uid: "u1" }) }
     });
     const response = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: {
-        mode: "user_key",
-        provider: "gemini",
-        apiKey: "secret-key-that-is-long",
-        conversationId: "c1",
-        latestUserMessage: "Hello"
-      }
+      payload: { conversationId: "c1", latestUserMessage: "Hello" }
     });
-    expect(response.statusCode).toBe(401);
-  });
-
-  it("uses the OpenRouter model for signed-in OpenRouter keys", async () => {
-    const app = createApp({
-      env,
-      logger: false,
-      authVerifier: { verifyIdToken: async () => ({ uid: "u1", name: "Pruthvi" }) },
-      generateResponse: async ({ apiKey, model, provider }) => {
-        expect(apiKey).toBe("openrouter-user-key");
-        expect(provider).toBe("openrouter");
-        expect(model).toBe("openrouter/free");
-        return { text: "A calm OpenRouter answer.", usage: undefined };
-      }
-    });
-    const response = await app.inject({
-      method: "POST",
-      url: "/api/chat",
-      headers: { authorization: "Bearer test-token" },
-      payload: {
-        mode: "user_key",
-        provider: "openrouter",
-        apiKey: "openrouter-user-key",
-        conversationId: "c1",
-        latestUserMessage: "Hello"
-      }
-    });
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ provider: "openrouter", model: "openrouter/free" });
+    expect(response.statusCode).toBe(503);
   });
 
   it("does not expose the api key in prompts or responses", async () => {
@@ -147,7 +154,6 @@ describe("api", () => {
       url: "/api/chat",
       headers: { authorization: "Bearer test-token" },
       payload: {
-        mode: "user_key",
         provider: "gemini",
         apiKey: secret,
         conversationId: "c1",
@@ -170,7 +176,7 @@ describe("api", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "I failed at work." }
+      payload: { conversationId: "c1", latestUserMessage: "I failed at work." }
     });
     expect(response.statusCode).toBe(200);
     expect(response.json().assistantMessage).toContain("Bhagavad Gita 2.47");
@@ -189,7 +195,7 @@ describe("api", () => {
     const response = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "How to choose between mother and wife?" }
+      payload: { conversationId: "c1", latestUserMessage: "How to choose between mother and wife?" }
     });
     const text = response.json().assistantMessage as string;
     expect(text.match(/Bhagavad Gita \d+\.\d+/g) ?? []).toHaveLength(1);
@@ -304,7 +310,7 @@ describe("api", () => {
     const chat = await app.inject({
       method: "POST",
       url: "/api/chat",
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello as guest" }
+      payload: { conversationId: "c1", latestUserMessage: "Hello as guest" }
     });
     expect(chat.statusCode).toBe(200);
 
@@ -335,7 +341,7 @@ describe("api", () => {
       method: "POST",
       url: "/api/chat",
       headers: { authorization: "Bearer user-token" },
-      payload: { mode: "demo", conversationId: "c1", latestUserMessage: "Hello signed in" }
+      payload: { conversationId: "c1", latestUserMessage: "Hello signed in" }
     });
     expect(chat.statusCode).toBe(200);
     expect(guestMessages).toBe(0);

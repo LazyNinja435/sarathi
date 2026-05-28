@@ -153,9 +153,8 @@ object ModelManager {
             else -> LlmModelFileKind.Missing
         }
         val active = when {
-            lite != null -> LlmRuntimeKind.LiteRtLm
-            task != null -> LlmRuntimeKind.MediaPipe
-            else -> LlmRuntimeKind.Mock
+            useMockMode -> LlmRuntimeKind.Mock
+            else -> LlmRuntimeKind.ServerManagedCloud
         }
         return LlmRuntimeDiagnostics(
             activeRuntime = active,

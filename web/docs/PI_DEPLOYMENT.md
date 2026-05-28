@@ -34,7 +34,16 @@ curl http://127.0.0.1:3411/api/health
 
 Do not edit shared files such as `/home/evolve4422/services/.env`, existing tunnel settings, Pi-hole, firewall, DNS, existing compose stacks, or global systemd units for this deployment.
 
-The Pi `.env` contains only Firebase public web config and backend non-secret settings by default. The Gemini API key is not stored on the Pi; users enter it in the browser.
+Provider API keys are server-managed in the Pi/API environment. The browser never stores Gemini, DeepSeek, or OpenRouter keys.
+
+At minimum, configure provider keys in `.env` as available:
+
+```env
+GEMINI_DEMO_API_KEY=
+DEEPSEEK_DEMO_API_KEY=
+DEEPSEEK_DEMO_MODEL=deepseek-chat
+OPENROUTER_DEMO_API_KEY=
+```
 
 ## Knowledge Files
 

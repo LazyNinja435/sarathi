@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDefaultUserMemory } from "./index.js";
+import { createDefaultUserMemory, SUPPORTED_AI_PROVIDERS } from "./index.js";
 
 describe("memory defaults", () => {
   it("uses simple devotional defaults", () => {
@@ -8,5 +8,11 @@ describe("memory defaults", () => {
     expect(memory.preferredResponseStyle).toBe("quote_simple_meaning_practical_guidance");
     expect(memory.spiritualTonePreference).toBe("krishna_inspired_practical");
     expect(memory.savedUserNotes).toEqual([]);
+  });
+});
+
+describe("AI providers", () => {
+  it("lists the server-managed cascade providers", () => {
+    expect(SUPPORTED_AI_PROVIDERS).toEqual(["gemini", "deepseek", "openrouter"]);
   });
 });

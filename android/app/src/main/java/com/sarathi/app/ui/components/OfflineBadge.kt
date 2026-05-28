@@ -26,7 +26,7 @@ import com.sarathi.app.ui.theme.SoftGold
 fun OfflineBadge(
     modifier: Modifier = Modifier,
     surface: GuidanceSurface = GuidanceSurface.OfflineGuidance,
-) = Unit
+) = OfflineBadgeContent(modifier = modifier, surface = surface)
 
 @Composable
 private fun OfflineBadgeContent(
@@ -42,9 +42,9 @@ private fun OfflineBadgeContent(
             Icons.Outlined.WifiOff,
         )
 
-        GuidanceSurface.GoogleAiStudio -> Triple(
-            "Google AI Studio",
-            "Using your configured Gemini API key",
+        GuidanceSurface.ServerManagedCloud -> Triple(
+            "Online guidance",
+            "Sarathi chooses the best available route",
             Icons.Outlined.Cloud,
         )
 

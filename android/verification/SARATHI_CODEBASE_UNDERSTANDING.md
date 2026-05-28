@@ -64,7 +64,7 @@ Key config:
 
 Signing: release signing reads `SARATHI_KEYSTORE_PATH`, `SARATHI_KEYSTORE_PASSWORD`, `SARATHI_KEY_ALIAS`, and `SARATHI_KEY_PASSWORD`. If missing, Gradle release builds fall back to debug signing, which is useful for contributors but not safe for public distribution.
 
-Manifest permissions include `INTERNET` and `REQUEST_INSTALL_PACKAGES`. There is no `MANAGE_EXTERNAL_STORAGE`. `FileProvider` exposes only `cache/updates/` for APK install handoff. Backup/data extraction rules exclude the encrypted Google AI Studio shared preferences file.
+Manifest permissions include `INTERNET` and `REQUEST_INSTALL_PACKAGES`. There is no `MANAGE_EXTERNAL_STORAGE`. `FileProvider` exposes only `cache/updates/` for APK install handoff. Android no longer stores provider API keys.
 
 ## 4. Android app architecture
 
@@ -79,8 +79,8 @@ Package map:
 
 | Package | Purpose | Important files/classes | Dependencies and risks |
 | --- | --- | --- | --- |
-| `com.sarathi.app.data` | Persistence and simple repositories. | `UserPreferencesRepository`, `UserPreferences`, `VerseRepository`, `DharmaRepository`, `GoogleAiStudioApiKeyStore`. | DataStore preferences drive onboarding/tone/runtime settings; encrypted API key storage uses AndroidX Security Crypto. RISK: online API key feature changes offline-first threat model and should stay opt-in. |
-| `com.sarathi.app.llm` | Chat engine abstraction and runtime adapters. | `ChatEngine`, `PromptBuilder`, `ModelManager`, `LiteRtLmGemmaChatEngine`, `MediaPipeGemmaChatEngine`, `MockKrishnaChatEngine`, `GoogleAiStudioChatEngine`, `ChatProviderSelector`. | Depends on model package, RAG result model, LiteRT-LM, MediaPipe, network client. RISK: current practice-mode preference is not honored in `ChatViewModel` selection. |
+| `com.sarathi.app.data` | Persistence and simple repositories. | `UserPreferencesRepository`, `UserPreferences`, `VerseRepository`, `DharmaRepository`. | DataStore preferences drive onboarding/tone/runtime settings and local memory. Provider API keys are not stored on Android. |
+| `com.sarathi.app.llm` | Chat engine abstraction and runtime adapters. | `ChatEngine`, `PromptBuilder`, `ModelManager`, `LiteRtLmGemmaChatEngine`, `MediaPipeGemmaChatEngine`, `MockKrishnaChatEngine`, `SarathiApiChatEngine`, `ChatProviderSelector`. | Depends on model package, RAG result model, LiteRT-LM, MediaPipe, and the Sarathi API client. Practice mode is honored before server-managed routing. |
 | `com.sarathi.app.model` | Small domain/status models. | `ChatMessage`, `GuidanceTone`, `Emotion`, `Verse`, `ModelStatus`, `LlmRuntimeDiagnostics`, `InstalledModelInfo`, `ModelEligibility`, `OnDeviceWisdomStatus`, `GuidanceSurface`. | Used across UI, ViewModels, runtime, and update flow. Model eligibility depends on cached release manifest and file SHA. |
 | `com.sarathi.app.modeldownload` | Explicit in-app model download/install. | `ModelDownloadManager`, `ModelChunkDownloader`, `ModelInstallViewModel`, `ModelDownloadState`, `ModelDownloadAction`. | Downloads chunks to app-private temp storage, verifies chunk/full SHA, installs to `files/models`. Large downloads are not resumable. |
 | `com.sarathi.app.rag` | Bundled SQLite/FTS retrieval. | `SarathiDatabaseProvider`, `RagRepository`, `RagSearchResult`. | Copies asset DB to `files/rag/`, opens read-only, returns empty results on failure. Query is phrase-quoted FTS, which may limit recall. |
@@ -108,7 +108,7 @@ Main flows:
 | Verse | `VerseScreen`, `VerseViewModel`, `VerseRepository` | Verse of the day from RAG when available, fallback to `verses.json`/hardcoded verse; can send reflection prompt back to chat. |
 | Feel | `FeelScreen`, `FeelViewModel` | Emotion selection flow; sends "I feel ..." prompt into chat. |
 | Dharma | `DharmaScreen`, `DharmaViewModel`, `DharmaRepository` | User writes a duty/reflection note; note persists in DataStore and can be reflected with chat. |
-| Settings | `SettingsScreen`, `SettingsViewModel`, `UpdateViewModel`, `ModelInstallViewModel` | Calm main settings plus collapsible developer diagnostics, update flow, offline model flow, optional Google AI Studio settings, reset onboarding. |
+| Settings | `SettingsScreen`, `SettingsViewModel`, `UpdateViewModel`, `ModelInstallViewModel` | Calm main settings plus collapsible developer diagnostics, update flow, offline model flow, memory controls, reset onboarding. |
 
 Design language:
 
@@ -130,7 +130,7 @@ Current key strings:
 | Settings update | `Update Sarathi` |
 | Model install | `Download offline model`, `On-device wisdom: Ready` |
 | Developer toggle | `Developer diagnostics` |
-| Badge labels | `Google AI Studio`, `On-device wisdom`, `Vaikuntha unreachable` |
+| Badge labels | `Online guidance`, `On-device wisdom`, `Vaikuntha unreachable` |
 
 RISK: `OfflineBadge` currently labels practice/offline guidance as `Vaikuntha unreachable` in some states. That may be too alarming or too non-product-like for normal fallback UX; compare against the desired "Practice mode" / "Offline guidance" copy.
 
@@ -155,19 +155,20 @@ Implemented engines:
 | `LiteRtLmGemmaChatEngine` | Preferred on-device `.litertlm`; lazy `Engine.initialize()`, CPU backend, per-request conversation, mutex, fallback on failure. |
 | `MediaPipeGemmaChatEngine` | Legacy/alternate `.task`; lazy `LlmInference`, session per request, fallback on failure. |
 | `MockKrishnaChatEngine` | Deterministic scripted offline practice/fallback engine; app-safe and RAG-aware. |
-| `GoogleAiStudioChatEngine` | Optional online provider using user-provided API key and `gemini-flash-lite-latest`; falls back to offline engine on errors. |
+| `SarathiApiChatEngine` | Server-managed online provider using the Sarathi API; falls back to offline engine on network, server, empty response, or parse failures. |
 | `unreachableEngine` inside `ChatViewModel` | Returns `Vaikuntha is unreachable right now! Please check your connection settings.` |
 
 Documented intended runtime selection in AGENTS.md:
 
 1. Practice mode ON -> `MockKrishnaChatEngine`.
-2. Practice mode OFF + compatible `.litertlm` -> `LiteRtLmGemmaChatEngine`.
-3. Practice mode OFF + `.task` only -> `MediaPipeGemmaChatEngine`.
-4. No model / blocked / runtime failure -> fall back gracefully to practice mode.
+2. Practice mode OFF -> `SarathiApiChatEngine` calls the Sarathi API, with offline fallback.
+3. Offline fallback + compatible `.litertlm` -> `LiteRtLmGemmaChatEngine`.
+4. Offline fallback + `.task` only -> `MediaPipeGemmaChatEngine`.
+5. No model / blocked / network / runtime failure -> fall back gracefully without crashing.
 
 Observed current working-tree selection in `ChatViewModel`:
 
-1. If Google AI Studio is enabled and API key is configured -> `GoogleAiStudioChatEngine(fallback = offlineEngine)`.
+1. If practice mode is off -> `SarathiApiChatEngine(fallback = offlineEngine)`.
 2. Offline engine checks LiteRT path.
 3. If LiteRT exists but `ModelEligibility.shouldBlockLiteRt` is true -> `unreachableEngine`.
 4. Else LiteRT exists -> `LiteRtLmGemmaChatEngine`.
@@ -354,8 +355,7 @@ CONFIRMED in code/config:
 - APK SHA-256, APK size, and package name are verified before install prompt.
 - Model chunk SHA-256/size and full model SHA-256/size are verified before final install.
 - No `MANAGE_EXTERNAL_STORAGE` permission.
-- EncryptedSharedPreferences is used for the optional Google AI Studio API key.
-- Backup rules exclude the encrypted API key preferences file.
+- Provider API keys are not stored by the Android app; cloud keys belong only in the Sarathi API environment.
 
 RISK: if an attacker controls GitHub release assets/manifest, the app trusts that manifest subject to HTTPS and SHA values inside the same manifest. Future manifest signing/pinning would reduce this supply-chain risk.
 
@@ -365,24 +365,21 @@ RISK: release builds fall back to debug signing when signing env vars are missin
 
 Unit tests present:
 
-- `GoogleAiStudioSettingsTest`
 - `ChatProviderSelectorTest`
-- `GeminiApiModelsTest`
-- `GoogleAiStudioChatEngineTest`
+- `SarathiApiChatEngineTest`
 - `MockKrishnaChatEngineTest`
 - `PromptBuilderTest`
 - `ReleaseManifestParseTest`
 
 Instrumented tests present:
 
-- `GoogleAiStudioApiKeyStoreInstrumentedTest`
 - `ModelManagerInstrumentedTest`
 
 Manual test cases:
 
 - `verification/test-cases/SARATHI_GITHUB_RELEASE_UPDATE_TEST_CASES.md`
 - `verification/test-cases/SARATHI_PIXEL_UX_AND_GEMMA_TEST_CASES.md`
-- `verification/test-cases/SARATHI_GOOGLE_AI_STUDIO_QA.md`
+- `verification/test-cases/SARATHI_SERVER_MANAGED_CLOUD_QA.md`
 
 Commands run in this task:
 
@@ -429,7 +426,7 @@ LIKELY:
 UNVERIFIED:
 
 - Current dirty working tree on a physical Pixel.
-- Current Google AI Studio UI/API flow on device.
+- Current server-managed cloud guidance flow on device.
 - Current in-app model download end-to-end from GitHub in this task.
 - Current LiteRT-LM generation from app-private `files/models` in this task.
 - Full release packaging scripts against local model in this task.
@@ -442,10 +439,9 @@ BLOCKED:
 
 RISK:
 
-- Practice/mock mode preference appears disconnected from `ChatViewModel` engine selection.
 - Fallback currently returns an "unreachable" message instead of practice guidance when no local/online engine exists.
 - Working tree contains many pre-existing changes and untracked files; future agents must inspect diffs before editing.
-- Optional online Google AI Studio mode broadens privacy/security/product positioning; keep it opt-in and clearly labeled.
+- Server-managed cloud mode changes privacy/security/product positioning; keep provider secrets server-side only.
 - RAG FTS phrase quoting may under-retrieve for natural questions.
 - Large model download lacks resume support.
 - Live model-only manifest still says `FULL_MODEL`; parser accepts this, but docs/tooling now prefer `MODEL_ONLY`.
@@ -456,7 +452,7 @@ RISK:
 1. Fix or intentionally redesign practice-mode runtime selection: ensure `useMockMode` routes to `MockKrishnaChatEngine`, and no-model/runtime-failure paths fall back to practice guidance rather than a hard unreachable message unless that is deliberate.
 2. Run physical Pixel QA on `57171FDCQ00AZ7` or another real Pixel: install current build, verify app-private model size, practice mode, LiteRT logs, RAG prompts, Settings states.
 3. Smoke-test GitHub release flows on device: latest manifest check, APP_ONLY update preservation, fresh install external model manifest, model download verification, and installer prompt.
-4. Review and settle the Google AI Studio feature: product copy, privacy posture, API key storage, offline-first defaults, tests, and AGENTS.md update once committed.
+4. Review and settle server-managed cloud product copy, privacy posture, fallback behavior, tests, and AGENTS.md updates once committed.
 5. Clean up repo hygiene before PR/release: separate generated screenshot churn from source changes, ensure no secrets/binaries/build artifacts are staged, and update docs that reflect committed behavior.
 
 ## 16. Important commands
@@ -532,7 +528,6 @@ Read these before substantive work:
 Also read these if working on the current dirty tree:
 
 - `android/app/src/main/java/com/sarathi/app/llm/ChatProviderSelector.kt`
-- `android/app/src/main/java/com/sarathi/app/llm/GoogleAiStudioChatEngine.kt`
-- `android/app/src/main/java/com/sarathi/app/llm/GeminiApiModels.kt`
-- `android/app/src/main/java/com/sarathi/app/data/GoogleAiStudioApiKeyStore.kt`
-- `verification/test-cases/SARATHI_GOOGLE_AI_STUDIO_QA.md`
+- `android/app/src/main/java/com/sarathi/app/llm/SarathiApiChatEngine.kt`
+- `android/app/src/main/java/com/sarathi/app/llm/SarathiApiModels.kt`
+- `verification/test-cases/SARATHI_SERVER_MANAGED_CLOUD_QA.md`

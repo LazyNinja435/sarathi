@@ -3,16 +3,17 @@ package com.sarathi.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sarathi.app.BuildConfig
 import com.sarathi.app.data.UserMemoryCommand
 import com.sarathi.app.data.UserPreferences
 import com.sarathi.app.data.UserPreferencesRepository
 import com.sarathi.app.llm.ChatEngine
 import com.sarathi.app.llm.ChatProvider
 import com.sarathi.app.llm.ChatProviderSelector
-import com.sarathi.app.llm.GoogleAiStudioChatEngine
 import com.sarathi.app.llm.LiteRtLmGemmaChatEngine
 import com.sarathi.app.llm.MediaPipeGemmaChatEngine
 import com.sarathi.app.llm.ModelManager
+import com.sarathi.app.llm.SarathiApiChatEngine
 import com.sarathi.app.model.ChatMessage
 import com.sarathi.app.model.ChatSessionMemory
 import com.sarathi.app.model.GuidanceSurface
@@ -93,8 +94,8 @@ class ChatViewModel(
     val typing: StateFlow<Boolean> = _typing.asStateFlow()
 
     private fun guidanceSurfaceFor(p: UserPreferences): GuidanceSurface {
-        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
-            return GuidanceSurface.GoogleAiStudio
+        if (ChatProviderSelector.select(p) == ChatProvider.ServerManagedCloud) {
+            return GuidanceSurface.ServerManagedCloud
         }
         val app = getApplication<Application>()
         val litePath = ModelManager.resolveLiteRtLmPath(app, p.customModelPath)
@@ -185,9 +186,9 @@ class ChatViewModel(
     private suspend fun resolveEngine(): ChatEngine {
         val p = preferences.value
         val offlineEngine = resolveOfflineEngine(p)
-        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
-            return GoogleAiStudioChatEngine(
-                apiKeyProvider = { prefs.getGoogleAiStudioApiKey() },
+        if (ChatProviderSelector.select(p) == ChatProvider.ServerManagedCloud) {
+            return SarathiApiChatEngine(
+                apiBaseUrl = BuildConfig.SARATHI_API_BASE_URL,
                 fallback = offlineEngine,
             )
         }
@@ -202,7 +203,7 @@ class ChatViewModel(
     }
 
     private fun hasReachableGuidance(p: UserPreferences): Boolean {
-        if (ChatProviderSelector.select(p) == ChatProvider.GoogleAiStudio) {
+        if (ChatProviderSelector.select(p) == ChatProvider.ServerManagedCloud) {
             return true
         }
         val app = getApplication<Application>()

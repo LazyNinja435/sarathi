@@ -3,7 +3,7 @@ package com.sarathi.app.model
 /** Which on-device backend Settings / runtime selection reflects. */
 enum class LlmRuntimeKind {
     Mock,
-    GoogleAiStudio,
+    ServerManagedCloud,
     LiteRtLm,
     MediaPipe,
 }

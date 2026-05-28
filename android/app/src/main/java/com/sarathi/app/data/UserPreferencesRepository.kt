@@ -17,8 +17,6 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class UserPreferencesRepository(
     private val context: Context,
-    private val googleAiStudioApiKeyStore: GoogleAiStudioApiKeyStore =
-        AndroidGoogleAiStudioApiKeyStore(context),
 ) {
 
     private object Keys {
@@ -27,8 +25,6 @@ class UserPreferencesRepository(
         val onboardingComplete = booleanPreferencesKey("onboarding_complete")
         val customModelPath = stringPreferencesKey("custom_model_path")
         val useMockMode = booleanPreferencesKey("use_mock_mode")
-        val googleAiStudioEnabled = booleanPreferencesKey("google_ai_studio_enabled")
-        val googleAiStudioApiKeyConfigured = booleanPreferencesKey("google_ai_studio_api_key_configured")
         val lastFeeling = stringPreferencesKey("last_feeling")
         val dharmaNote = stringPreferencesKey("dharma_note")
         val memoryPreferredLanguageLevel = stringPreferencesKey("memory_preferred_language_level")
@@ -44,8 +40,6 @@ class UserPreferencesRepository(
             onboardingComplete = p[Keys.onboardingComplete] ?: false,
             customModelPath = p[Keys.customModelPath].orEmpty(),
             useMockMode = p[Keys.useMockMode] ?: false,
-            googleAiStudioEnabled = p[Keys.googleAiStudioEnabled] ?: false,
-            googleAiStudioApiKeyConfigured = p[Keys.googleAiStudioApiKeyConfigured] ?: false,
             lastFeeling = p[Keys.lastFeeling].orEmpty(),
             dharmaNote = p[Keys.dharmaNote].orEmpty(),
             userMemory = UserMemory(
@@ -77,38 +71,6 @@ class UserPreferencesRepository(
 
     suspend fun setUseMockMode(value: Boolean) {
         context.dataStore.edit { it[Keys.useMockMode] = value }
-    }
-
-    suspend fun setGoogleAiStudioEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.googleAiStudioEnabled] = value }
-    }
-
-    suspend fun saveGoogleAiStudioApiKey(apiKey: String) {
-        val trimmed = apiKey.trim()
-        if (trimmed.isBlank()) return
-        val saved = googleAiStudioApiKeyStore.saveApiKey(trimmed)
-        context.dataStore.edit {
-            it[Keys.googleAiStudioApiKeyConfigured] = saved && googleAiStudioApiKeyStore.hasApiKey()
-        }
-    }
-
-    suspend fun clearGoogleAiStudioApiKey() {
-        val cleared = googleAiStudioApiKeyStore.clearApiKey()
-        context.dataStore.edit {
-            it[Keys.googleAiStudioApiKeyConfigured] = if (cleared) {
-                false
-            } else {
-                googleAiStudioApiKeyStore.hasApiKey()
-            }
-        }
-    }
-
-    fun getGoogleAiStudioApiKey(): String? = googleAiStudioApiKeyStore.getApiKey()
-
-    suspend fun refreshGoogleAiStudioApiKeyConfigured() {
-        context.dataStore.edit {
-            it[Keys.googleAiStudioApiKeyConfigured] = googleAiStudioApiKeyStore.hasApiKey()
-        }
     }
 
     suspend fun setLastFeeling(value: String) {

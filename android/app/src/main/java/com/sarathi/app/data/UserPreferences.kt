@@ -9,8 +9,6 @@ data class UserPreferences(
     val onboardingComplete: Boolean = false,
     val customModelPath: String = "",
     val useMockMode: Boolean = false,
-    val googleAiStudioEnabled: Boolean = false,
-    val googleAiStudioApiKeyConfigured: Boolean = false,
     val lastFeeling: String = "",
     val dharmaNote: String = "",
     val userMemory: UserMemory = UserMemory(),

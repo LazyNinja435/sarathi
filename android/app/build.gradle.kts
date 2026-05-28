@@ -32,6 +32,10 @@ android {
         versionCode = sarathiVersionCode
         versionName = sarathiVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val sarathiApiBaseUrl = providers.gradleProperty("SARATHI_API_BASE_URL")
+            .orElse("https://talkto.sreekrishna.uk/api")
+            .get()
+        buildConfigField("String", "SARATHI_API_BASE_URL", "\"$sarathiApiBaseUrl\"")
     }
 
     signingConfigs {

@@ -1,4 +1,6 @@
 export type ChatRole = "user" | "assistant" | "system";
+export const SUPPORTED_AI_PROVIDERS = ["gemini", "deepseek", "openrouter"] as const;
+export type AiProviderId = typeof SUPPORTED_AI_PROVIDERS[number];
 
 export interface ChatMessage {
   id: string;
@@ -16,7 +18,7 @@ export interface Conversation {
   createdAt: string;
   updatedAt: string;
   lastMessagePreview: string;
-  modelProvider: "gemini" | "openrouter";
+  modelProvider: AiProviderId;
   messageCount: number;
   archived: boolean;
 }
@@ -43,12 +45,6 @@ export interface UserPreferences {
   preferredResponseStyle: "quote_simple_meaning_practical_guidance";
   spiritualTonePreference: "krishna_inspired_practical";
   updatedAt: string;
-}
-
-export interface GeminiProviderConfig {
-  provider: "gemini" | "openrouter";
-  model: string;
-  apiKeyStorage: "browser_local";
 }
 
 export interface RagPassage {
