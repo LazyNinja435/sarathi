@@ -66,6 +66,14 @@ describe("server-managed chat UI", () => {
     expect(productionChatSource).toContain("references.length > 0");
     expect(productionChatSource).toContain("Your Sacred Memory");
   });
+
+  it("aligns user chat bubbles to the right side of the thread", () => {
+    const componentSource = readFileSync(fileURLToPath(new URL("./components/sarathi/SarathiChatPanel.tsx", import.meta.url)), "utf8");
+    const cssSource = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url)), "utf8");
+
+    expect(componentSource).toContain('className="krishna-user-card"');
+    expect(cssSource).toMatch(/\.krishna-user-card\s*\{[^}]*align-self:\s*flex-end/s);
+  });
 });
 
 describe("local Firebase bootstrap", () => {
