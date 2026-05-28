@@ -80,8 +80,8 @@ describe("server-managed chat UI", () => {
   it("shows Verse of the Day in Sanskrit, not romanized transliteration", () => {
     const source = readUiSources();
 
-    expect(source).toContain("कर्मण्येवाधिकारस्ते मा फलेषु कदाचन");
-    expect(source).toContain("मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि");
+    expect(source).toContain("getVerseOfTheDay");
+    expect(source).toContain("verseOfTheDay.sanskrit");
     expect(source).not.toContain("karmany evadhikaras te ma phalesu kadacana");
   });
 });

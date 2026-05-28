@@ -13,6 +13,7 @@ import {
   User,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
+import { getVerseOfTheDay } from "./gitaVerseOfDay";
 
 export interface SarathiDesignMessage {
   id: string;
@@ -126,6 +127,9 @@ export function SarathiDesignTwoSignedInPage() {
 }
 
 export function SarathiSidebar({ signedIn = false }: { signedIn?: boolean }) {
+  const verseOfTheDay = getVerseOfTheDay();
+  const sanskritLines = verseOfTheDay.sanskrit.split(/\r?\n/).filter(Boolean);
+
   return (
     <aside className="krishna-sidebar">
       <article className="krishna-side-panel reflection">
@@ -149,13 +153,16 @@ export function SarathiSidebar({ signedIn = false }: { signedIn?: boolean }) {
           <p>Verse of the Day</p>
         </div>
         <div className="krishna-verse-card">
-          <p className="sanskrit">कर्मण्येवाधिकारस्ते मा फलेषु कदाचन ।<br />मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि ॥ ४७ ॥</p>
-          <strong>Bhagavad Gita 2.47</strong>
-          <p>
-            You have the right to your action alone, never to its fruits.
-            Let not the fruits of action be your motive, nor let your
-            attachment be to inaction.
+          <p className="sanskrit">
+            {sanskritLines.map((line, index) => (
+              <span key={`${verseOfTheDay.id}-${index}`}>
+                {line}
+                {index < sanskritLines.length - 1 && <br />}
+              </span>
+            ))}
           </p>
+          <strong>Bhagavad Gita {verseOfTheDay.reference}</strong>
+          <p>{verseOfTheDay.translation}</p>
           <a href="/mock/sarathi-design-2">Explore this verse <ArrowRight size={18} /></a>
         </div>
       </article>
