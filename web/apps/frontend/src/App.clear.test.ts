@@ -76,6 +76,14 @@ describe("server-managed chat UI", () => {
     expect(cssSource).toMatch(/\.krishna-user-row\s*\{[^}]*justify-content:\s*flex-end/s);
     expect(cssSource).toMatch(/\.krishna-user-card\s*\{[^}]*margin-left:\s*auto/s);
   });
+
+  it("shows Verse of the Day in Sanskrit, not romanized transliteration", () => {
+    const source = readUiSources();
+
+    expect(source).toContain("कर्मण्येवाधिकारस्ते मा फलेषु कदाचन");
+    expect(source).toContain("मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि");
+    expect(source).not.toContain("karmany evadhikaras te ma phalesu kadacana");
+  });
 });
 
 describe("local Firebase bootstrap", () => {

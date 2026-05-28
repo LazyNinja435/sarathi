@@ -149,7 +149,7 @@ export function SarathiSidebar({ signedIn = false }: { signedIn?: boolean }) {
           <p>Verse of the Day</p>
         </div>
         <div className="krishna-verse-card">
-          <p className="sanskrit">karmany evadhikaras te ma phalesu kadacana<br />ma karma-phala-hetur bhur ma te sango 'stv akarmani</p>
+          <p className="sanskrit">कर्मण्येवाधिकारस्ते मा फलेषु कदाचन ।<br />मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि ॥ ४७ ॥</p>
           <strong>Bhagavad Gita 2.47</strong>
           <p>
             You have the right to your action alone, never to its fruits.
