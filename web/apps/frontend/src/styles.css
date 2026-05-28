@@ -1316,8 +1316,15 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
   display: grid;
 }
 
+.krishna-user-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .krishna-user-card {
   align-self: flex-end;
+  margin-left: auto;
   width: min(28rem, calc(100% - 4.4rem));
   padding: 1.1rem 1.25rem;
   white-space: pre-wrap;
@@ -1900,10 +1907,13 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
   .krishna-trust-row {
     flex-wrap: wrap;
   }
-  .krishna-assistant-card,
-  .krishna-user-card {
+  .krishna-assistant-card {
     width: 100%;
     margin-left: 0;
+  }
+  .krishna-user-card {
+    width: min(88%, 28rem);
+    margin-left: auto;
   }
   .krishna-composer {
     grid-template-columns: 1fr;

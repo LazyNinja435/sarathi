@@ -90,7 +90,9 @@ export function SarathiChatPanel({
               message.role === "assistant" ? (
                 <SarathiAssistantMessage key={message.id} text={message.text} />
               ) : (
-                <article className="krishna-user-card" key={message.id}>{message.text}</article>
+                <div className="krishna-user-row" key={message.id}>
+                  <article className="krishna-user-card">{message.text}</article>
+                </div>
               )
             ))}
             {busy && <SarathiAssistantMessage text="The charioteer is reflecting..." />}
