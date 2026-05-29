@@ -99,6 +99,16 @@ describe("server-managed chat UI", () => {
     expect(cssSource).toMatch(/@media \(max-width: 980px\)[\s\S]*\.krishna-sidebar\s*\{[\s\S]*position:\s*fixed/s);
     expect(cssSource).toMatch(/@media \(max-width: 980px\)[\s\S]*\.krishna-sidebar\.is-collapsed\s*\{[\s\S]*transform:\s*translateX\(calc\(100% \+ 1\.25rem\)\)/s);
   });
+
+  it("sends the verse of the day into chat instead of navigating to the mock route", () => {
+    const componentSource = readFileSync(fileURLToPath(new URL("./components/sarathi/SarathiChatPanel.tsx", import.meta.url)), "utf8");
+
+    expect(componentSource).toContain("buildVerseExplorePrompt");
+    expect(componentSource).toContain("onExploreVerse");
+    expect(componentSource).toContain('type="button"');
+    expect(componentSource).toContain("Please help me understand Bhagavad Gita");
+    expect(componentSource).not.toContain('<a href="/mock/sarathi-design-2">Explore this verse');
+  });
 });
 
 describe("local Firebase bootstrap", () => {

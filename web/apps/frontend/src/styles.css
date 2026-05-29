@@ -1560,13 +1560,23 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
   font-size: 0.98rem;
 }
 
-.krishna-verse-card a {
+.krishna-verse-card a,
+.krishna-verse-card button {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   margin-top: 1.45rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #f2c65d;
   font-weight: 800;
+}
+
+.krishna-verse-card button:hover,
+.krishna-verse-card button:focus-visible {
+  outline: none;
+  color: #ffe48e;
 }
 
 .krishna-side-panel.signin ul {

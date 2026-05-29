@@ -180,7 +180,12 @@ export function SarathiChatPanel({
           />
         )}
 
-        <SarathiSidebar signedIn={signedIn} onSignIn={onSignIn} open={sidebarOpen} />
+        <SarathiSidebar
+          signedIn={signedIn}
+          onSignIn={onSignIn}
+          onExploreVerse={onPrompt}
+          open={sidebarOpen}
+        />
       </main>
 
       <footer className="krishna-reference-footer">
@@ -210,9 +215,24 @@ function SarathiAssistantMessage({ text }: { text: string }) {
   );
 }
 
-function SarathiSidebar({ signedIn, onSignIn, open }: { signedIn: boolean; onSignIn?: () => void; open: boolean }) {
+function buildVerseExplorePrompt(reference: string, translation: string) {
+  return `Please help me understand Bhagavad Gita ${reference}: ${translation}`;
+}
+
+function SarathiSidebar({
+  signedIn,
+  onSignIn,
+  onExploreVerse,
+  open,
+}: {
+  signedIn: boolean;
+  onSignIn?: () => void;
+  onExploreVerse?: (prompt: string) => void;
+  open: boolean;
+}) {
   const verseOfTheDay = getVerseOfTheDay();
   const sanskritLines = verseOfTheDay.sanskrit.split(/\r?\n/).filter(Boolean);
+  const verseExplorePrompt = buildVerseExplorePrompt(verseOfTheDay.reference, verseOfTheDay.translation);
 
   return (
     <aside
@@ -251,7 +271,9 @@ function SarathiSidebar({ signedIn, onSignIn, open }: { signedIn: boolean; onSig
           </p>
           <strong>Bhagavad Gita {verseOfTheDay.reference}</strong>
           <p>{verseOfTheDay.translation}</p>
-          <a href="/mock/sarathi-design-2">Explore this verse <ArrowRight size={18} /></a>
+          <button type="button" onClick={() => onExploreVerse?.(verseExplorePrompt)}>
+            Explore this verse <ArrowRight size={18} />
+          </button>
         </div>
       </article>
 
