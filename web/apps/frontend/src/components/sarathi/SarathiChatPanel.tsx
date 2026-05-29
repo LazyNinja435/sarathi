@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BookOpen,
   Check,
+  Menu,
   Send,
   ShieldCheck,
   Sparkles,
@@ -10,6 +11,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { getVerseOfTheDay } from "../../gitaVerseOfDay";
 
@@ -50,9 +52,12 @@ export function SarathiChatPanel({
   onSignIn,
   onDismissMemory,
 }: SarathiChatPanelProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktopSidebarDefaultOpen);
+  const sidebarStateClass = sidebarOpen ? "sidebar-open" : "sidebar-collapsed";
+
   return (
     <>
-      <main className="krishna-reference-grid production-krishna-grid">
+      <main className={`krishna-reference-grid production-krishna-grid ${sidebarStateClass}`}>
         <section className="krishna-chat-shell">
           <div className="krishna-chat-hero">
             <div>
@@ -154,7 +159,28 @@ export function SarathiChatPanel({
           </div>
         </section>
 
-        <SarathiSidebar signedIn={signedIn} onSignIn={onSignIn} />
+        <button
+          type="button"
+          className="krishna-sidebar-toggle"
+          aria-label={sidebarOpen ? "Close guidance cards" : "Open guidance cards"}
+          aria-controls="krishna-sidebar-cards"
+          aria-expanded={sidebarOpen}
+          title={sidebarOpen ? "Close guidance cards" : "Open guidance cards"}
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          <Menu size={24} />
+        </button>
+
+        {sidebarOpen && (
+          <button
+            type="button"
+            className="krishna-sidebar-backdrop"
+            aria-label="Close guidance cards"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <SarathiSidebar signedIn={signedIn} onSignIn={onSignIn} open={sidebarOpen} />
       </main>
 
       <footer className="krishna-reference-footer">
@@ -163,6 +189,11 @@ export function SarathiChatPanel({
       </footer>
     </>
   );
+}
+
+function isDesktopSidebarDefaultOpen() {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia("(min-width: 981px)").matches;
 }
 
 function SarathiAssistantMessage({ text }: { text: string }) {
@@ -179,12 +210,16 @@ function SarathiAssistantMessage({ text }: { text: string }) {
   );
 }
 
-function SarathiSidebar({ signedIn, onSignIn }: { signedIn: boolean; onSignIn?: () => void }) {
+function SarathiSidebar({ signedIn, onSignIn, open }: { signedIn: boolean; onSignIn?: () => void; open: boolean }) {
   const verseOfTheDay = getVerseOfTheDay();
   const sanskritLines = verseOfTheDay.sanskrit.split(/\r?\n/).filter(Boolean);
 
   return (
-    <aside className="krishna-sidebar">
+    <aside
+      id="krishna-sidebar-cards"
+      className={`krishna-sidebar ${open ? "is-open" : "is-collapsed"}`}
+      aria-label="Guidance cards"
+    >
       <article className="krishna-side-panel reflection">
         <div className="krishna-panel-heading">
           <Sun size={28} />

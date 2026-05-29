@@ -84,6 +84,21 @@ describe("server-managed chat UI", () => {
     expect(source).toContain("verseOfTheDay.sanskrit");
     expect(source).not.toContain("karmany evadhikaras te ma phalesu kadacana");
   });
+
+  it("makes the Krishna right-side cards a collapsible drawer on smaller screens", () => {
+    const componentSource = readFileSync(fileURLToPath(new URL("./components/sarathi/SarathiChatPanel.tsx", import.meta.url)), "utf8");
+    const cssSource = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url)), "utf8");
+
+    expect(componentSource).toContain("isDesktopSidebarDefaultOpen");
+    expect(componentSource).toContain('aria-controls="krishna-sidebar-cards"');
+    expect(componentSource).toContain("setSidebarOpen");
+    expect(componentSource).toContain("sidebar-open");
+    expect(componentSource).toContain("sidebar-collapsed");
+    expect(cssSource).toMatch(/\.krishna-sidebar-toggle\s*\{/s);
+    expect(cssSource).toMatch(/\.krishna-reference-grid\.sidebar-collapsed\s*\{/s);
+    expect(cssSource).toMatch(/@media \(max-width: 980px\)[\s\S]*\.krishna-sidebar\s*\{[\s\S]*position:\s*fixed/s);
+    expect(cssSource).toMatch(/@media \(max-width: 980px\)[\s\S]*\.krishna-sidebar\.is-collapsed\s*\{[\s\S]*transform:\s*translateX\(calc\(100% \+ 1\.25rem\)\)/s);
+  });
 });
 
 describe("local Firebase bootstrap", () => {
