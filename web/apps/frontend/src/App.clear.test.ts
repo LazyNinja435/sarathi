@@ -109,6 +109,20 @@ describe("server-managed chat UI", () => {
     expect(componentSource).toContain("Please help me understand Bhagavad Gita");
     expect(componentSource).not.toContain('<a href="/mock/sarathi-design-2">Explore this verse');
   });
+
+  it("defines a compact mobile web chat layout for narrow browsers", () => {
+    const cssSource = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url)), "utf8");
+
+    expect(cssSource).toContain("@media (max-width: 720px)");
+    expect(cssSource).toContain(".krishna-reference-grid {");
+    expect(cssSource).toContain("width: 100%;");
+    expect(cssSource).toContain(".krishna-composer.mobile-compact");
+    expect(cssSource).toContain("grid-template-columns: minmax(0, 1fr) 3.15rem;");
+    expect(cssSource).toContain(".krishna-assistant-card {");
+    expect(cssSource).toContain("max-width: 100%;");
+    expect(cssSource).toContain(".krishna-trust-row i { display: none; }");
+    expect(cssSource).toContain("@media (max-width: 340px)");
+  });
 });
 
 describe("local Firebase bootstrap", () => {

@@ -138,7 +138,7 @@ export function SarathiChatPanel({
             </details>
           )}
 
-          <div className="krishna-composer">
+          <div className="krishna-composer mobile-compact">
             <label className="sr-only" htmlFor="sarathi-chat-input">Message for Sarathi</label>
             <textarea
               id="sarathi-chat-input"

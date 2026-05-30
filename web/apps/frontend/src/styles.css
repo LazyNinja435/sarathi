@@ -5,6 +5,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at top left, rgba(202, 162, 74, 0.14), transparent 32rem), #070b1f; }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
@@ -1830,7 +1831,9 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
 }
 
 @media (max-width: 720px) {
-  .app-shell { padding: 0.5rem; }
+  .app-shell {
+    padding: 0;
+  }
   .landing { padding: 1.3rem; }
   .landing-copy { min-height: calc(100vh - 2.6rem); gap: 0.65rem; }
   .landing-logo-wrap {
@@ -1882,7 +1885,8 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
     transform: none;
   }
   .production-chat-layout {
-    padding-top: 0.75rem;
+    width: 100%;
+    padding: 0.35rem 0.45rem 1.25rem;
   }
   .sarathi-design-page {
     padding: 0.55rem;
@@ -1933,44 +1937,157 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
     grid-template-columns: 1fr;
     padding-top: 1.25rem;
   }
+  .krishna-reference-grid {
+    width: 100%;
+  }
+  .production-krishna-grid {
+    width: 100%;
+  }
   .krishna-chat-shell {
     min-height: auto;
+    border-radius: 8px;
   }
   .krishna-chat-hero {
     flex-direction: column;
     min-height: auto;
-    padding: 1.45rem 1.2rem;
+    padding: 1.05rem 0.95rem 1rem;
+  }
+  .krishna-chat-hero > div {
+    width: 100%;
+    min-width: 0;
+  }
+  .krishna-chat-hero h1 {
+    margin: 0.8rem 0 1rem;
+    max-width: 12.5ch;
+    font-size: clamp(1.65rem, 8vw, 2rem);
+    line-height: 1.02;
+    overflow-wrap: normal;
+  }
+  .krishna-lotus-rule {
+    width: 100%;
+    margin-bottom: 0.85rem;
+  }
+  .krishna-hero-copy {
+    max-width: 100%;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
   }
   .krishna-clear-button {
     position: static;
     width: 100%;
+    height: 3rem;
+    font-size: 1rem;
   }
   .krishna-prompt-row,
   .krishna-thread,
   .krishna-trust-row,
   .krishna-composer {
-    padding-left: 1.1rem;
-    padding-right: 1.1rem;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+  .krishna-prompt-row {
+    padding-top: 0.85rem;
+    padding-bottom: 0.95rem;
+    gap: 0.55rem;
+  }
+  .krishna-prompt-row button {
+    min-height: 2.35rem;
+    max-width: 100%;
+    padding: 0.5rem 0.65rem;
+    font-size: clamp(0.82rem, 3.8vw, 0.94rem);
+    line-height: 1.2;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .krishna-thread {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    gap: 0.95rem;
+  }
+  .krishna-speaker-row {
+    gap: 0.7rem;
+    font-size: 1.05rem;
+  }
+  .krishna-avatar {
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+  .krishna-avatar img {
+    width: 1.95rem;
+    height: 1.95rem;
   }
   .krishna-trust-row {
     flex-wrap: wrap;
+    gap: 0.7rem 0.95rem;
+    padding-top: 0.15rem;
+    padding-bottom: 1rem;
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+  .krishna-trust-row i { display: none; }
+  .krishna-trust-row span {
+    gap: 0.4rem;
+  }
+  .krishna-trust-row img {
+    width: 1.15rem;
+    height: 1.15rem;
   }
   .krishna-assistant-card {
     width: 100%;
+    max-width: 100%;
     margin-left: 0;
+    padding: 1rem;
+    font-size: clamp(0.94rem, 4vw, 1rem);
+    line-height: 1.62;
+    overflow-wrap: anywhere;
   }
   .krishna-user-card {
-    width: min(88%, 28rem);
+    width: min(92%, 28rem);
     margin-left: auto;
+    padding: 0.85rem 0.95rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
   }
-  .krishna-composer {
-    grid-template-columns: 1fr;
+  .krishna-composer.mobile-compact {
+    grid-template-columns: minmax(0, 1fr) 3.15rem;
+    gap: 0.65rem;
+    padding-top: 0.8rem;
+    padding-bottom: 0.85rem;
   }
-  .krishna-composer button {
-    width: 100%;
+  .krishna-composer.mobile-compact textarea {
+    height: 3.15rem;
+    min-height: 3.15rem;
+    padding: 0.9rem 0.95rem;
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+  .krishna-composer.mobile-compact button {
+    width: 3.15rem;
+    height: 3.15rem;
+  }
+  .krishna-reference-footer {
+    margin-top: 1.35rem;
+    padding: 0 0.8rem 1.1rem;
+    font-size: 0.86rem;
+  }
+  .user-chip {
+    margin: 0.4rem 0.8rem 0.8rem;
+    font-size: 0.78rem;
   }
   .sarathi-index-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 340px) {
+  .krishna-composer.mobile-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .krishna-composer.mobile-compact button {
+    width: 100%;
   }
 }
 
@@ -2005,9 +2122,11 @@ label { display: grid; gap: 0.5rem; margin: 1rem 0; color: #f8df9b; font-weight:
 
   .krishna-sidebar-toggle {
     position: fixed;
-    top: 0.85rem;
-    right: 0.85rem;
+    top: max(0.6rem, env(safe-area-inset-top));
+    right: 0.65rem;
     z-index: 50;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .krishna-sidebar.is-collapsed {
